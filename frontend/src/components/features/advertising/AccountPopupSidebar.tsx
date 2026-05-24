@@ -56,8 +56,6 @@ const PROFILES: ProfileData[] = [
   },
 ]
 
-const ACCOUNT_LABELS: Record<string, string> = { current: 'Текущий', savings: 'Накопительный', deposit: 'Депозит', card: 'Карта' }
-
 function formatBalance(n: number): string {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M ₽`
   if (n >= 1000) return `${(n / 1000).toFixed(0)}K ₽`
