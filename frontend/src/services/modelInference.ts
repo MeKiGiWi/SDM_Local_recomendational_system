@@ -20,7 +20,6 @@ export interface UserFeatures {
 
 // ─── Веса модели ───
 let modelWeights: Record<string, { data: number[][]; gamma?: number; shape: number[] }> | null = null
-let norms: { mean: number[]; std: number[] } | null = null
 let initialized = false
 
 export async function initBitNet(): Promise<boolean> {
@@ -32,9 +31,9 @@ export async function initBitNet(): Promise<boolean> {
     ])
     if (wResp.ok && nResp.ok) {
       modelWeights = await wResp.json()
-      norms = await nResp.json()
+      await nResp.json()
       initialized = true
-      console.log('[BitNet] Loaded real weights:', Object.keys(modelWeights).length, 'tensors')
+      console.log('[BitNet] Loaded real weights:', Object.keys(modelWeights || {}).length, 'tensors')
       return true
     }
   } catch (e) {
@@ -149,8 +148,7 @@ export function predict(feats: Float32Array): Float32Array {
       const bl = getWeights(prefix + '.weight')
       if (!bl || !norm) continue
 
-      const dim = norm.data.length
-      const nGamma = new Float32Array(norm.data as number[])
+      const nGamma = new Float32Array(norm.data as unknown as number[])
 
       // RMSNorm
       let xn = rmsNorm(x, nGamma)
@@ -173,8 +171,8 @@ export function predict(feats: Float32Array): Float32Array {
     }
 
     // Final Norm
-    const fn = modelWeights['norm_out.' + (Object.keys(modelWeights).find(k => k.includes('norm_out') && k.includes('w'))?.replace('norm_out.', '') ?? 'w')]
-    if (fn) x = rmsNorm(x, new Float32Array(fn.data as number[]))
+    const fn = modelWeights['norm_out.' + (Object.keys(modelWeights || {}).find(k => k.includes('norm_out') && k.includes('w'))?.replace('norm_out.', '') ?? 'w')]
+    if (fn) x = rmsNorm(x, new Float32Array(fn.data as unknown as number[]))
 
     // Head
     const hd = getWeights('head.weight')

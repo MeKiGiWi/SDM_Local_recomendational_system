@@ -12,8 +12,6 @@ services:
       - VITE_USE_MOCK=true
       - VITE_USE_LOCAL_MODEL=true
     command: npm run dev -- --host 0.0.0.0
-    profiles:
-      - dev
 
   backend:
     build:
@@ -27,22 +25,3 @@ services:
     command: python -c "print('Backend ready'); import time; time.sleep(99999)"
     profiles:
       - dev
-
-  train:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    profiles:
-      - train
-    volumes:
-      - ./backend/models:/app/models
-      - ./backend/datasets/raw:/app/backend/datasets/raw
-      - ./backend/edge/android_assets:/app/backend/edge/android_assets
-    command: >
-      sh -c "
-      python backend/scripts/download_santander.py &&
-      python -m src.models.train --epochs 10 --device cpu --sample-frac 0.05 &&
-      python -m src.models.export.onnx_export &&
-      python -m src.models.export.gguf_export &&
-      python backend/scripts/export_to_android.py
-      "

@@ -146,8 +146,8 @@ print(m.export_info())
 ## Docker
 
 ```bash
-docker compose up --build     # frontend + backend
-docker compose --profile train up train  # только обучение
+docker compose up --build     # только фронтенд (по умолчанию)
+docker compose --profile dev up --build # фронтенд + бэкенд
 ```
 
 ## Endpoint'ы (бэкенд)
