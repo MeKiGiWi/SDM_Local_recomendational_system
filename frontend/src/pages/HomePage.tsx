@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Header } from '../components/layout'
 import { ClientSelector, PROFILES } from '../components/features/advertising/ClientSelector'
 import { ClientProfile } from '../components/features/advertising/ClientProfile'
@@ -7,7 +7,7 @@ import { colors } from '../config/theme'
 import { useUserInputStore } from '../store'
 
 export function HomePage() {
-  const [selectedIdx, setSelectedIdx] = useState(0)
+  const [selectedIdx, setSelectedIdx] = useState(3)
   const setField = useUserInputStore((s) => s.setField)
 
   const handleSelect = (idx: number) => {
@@ -23,22 +23,30 @@ export function HomePage() {
 
   const profile = PROFILES[selectedIdx]
 
+  useEffect(() => {
+    handleSelect(selectedIdx)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: colors.bg }}>
       <Header />
-      <main className="flex-1 px-6 py-6 max-w-[1440px] mx-auto w-full">
-        <div className="mb-5">
-          <ClientSelector selectedIdx={selectedIdx} onSelect={handleSelect} />
-        </div>
+      <main className="flex-1 page-container py-5 sm:py-6 lg:py-8">
+        <h1
+          className="text-[22px] sm:text-[26px] lg:text-[28px] font-bold tracking-tight mb-5 sm:mb-6 animate-fade-in-up leading-tight"
+          style={{ color: colors.text.primary }}
+        >
+          Подберите продукты для клиента
+        </h1>
 
-        <div className="flex gap-6">
-          <div className="w-[420px] shrink-0">
-            <ClientProfile profile={profile} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <RecommendationsPanel profile={profile} />
-          </div>
-        </div>
+        <section className="mb-5 sm:mb-6">
+          <ClientSelector selectedIdx={selectedIdx} onSelect={handleSelect} />
+        </section>
+
+        <section className="flex flex-col lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] gap-4 sm:gap-5 lg:gap-6 items-stretch">
+          <ClientProfile profile={profile} />
+          <RecommendationsPanel profile={profile} />
+        </section>
       </main>
     </div>
   )

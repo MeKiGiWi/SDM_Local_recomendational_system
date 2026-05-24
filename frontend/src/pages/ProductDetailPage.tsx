@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom'
 import { Card, CardBody, CardHeader, Button, Badge } from '../components/ui'
 import { getProductById } from '../data/productParser'
+import { Header } from '../components/layout'
+import { colors } from '../config/theme'
 
 const CATEGORY_LABELS: Record<string, string> = {
   deposits_and_savings_accounts_individuals: 'Вклады',
@@ -17,41 +19,59 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[300px] text-center px-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Продукт не найден</h1>
-        <Link to="/products"><Button variant="primary">Ко всем продуктам</Button></Link>
+      <div className="min-h-screen flex flex-col" style={{ background: colors.bg }}>
+        <Header />
+        <div className="flex flex-col items-center justify-center flex-1 text-center page-container py-10">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: colors.text.primary }}>
+            Продукт не найден
+          </h1>
+          <Link to="/"><Button variant="primary">На главную</Button></Link>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <Link to="/" className="text-sm text-blue-600 hover:text-blue-700 mb-4 inline-block">← На главную</Link>
-
-      <Card className="mb-4 sm:mb-6">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">{product.name}</h1>
-            <Badge variant="info">{CATEGORY_LABELS[product.category] ?? product.category}</Badge>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <div className="relative rounded-lg overflow-hidden mb-4 bg-gradient-to-br from-gray-100 to-gray-200 h-32 sm:h-48">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="absolute inset-0 w-full h-full object-cover opacity-80"
-              onError={(e) => { (e.target as HTMLImageElement).remove() }}
-            />
-          </div>
-          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{product.description}</p>
-        </CardBody>
-      </Card>
-
-      <div className="mt-4 sm:mt-6 text-center">
-        <Link to="/">
-          <Button variant="primary" size="lg">На главную</Button>
+    <div className="min-h-screen flex flex-col" style={{ background: colors.bg }}>
+      <Header />
+      <div className="page-container py-5 sm:py-8 max-w-3xl w-full">
+        <Link
+          to="/"
+          className="text-sm font-medium mb-4 inline-block"
+          style={{ color: colors.primary.DEFAULT }}
+        >
+          ← На главную
         </Link>
+
+        <Card className="mb-4 sm:mb-6">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <h1 className="text-lg sm:text-xl font-bold" style={{ color: colors.text.primary }}>
+                {product.name}
+              </h1>
+              <Badge variant="info">{CATEGORY_LABELS[product.category] ?? product.category}</Badge>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="relative rounded-lg overflow-hidden mb-4 bg-gradient-to-br from-gray-100 to-gray-200 h-40 sm:h-48">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="absolute inset-0 w-full h-full object-cover opacity-80"
+                onError={(e) => { (e.target as HTMLImageElement).remove() }}
+              />
+            </div>
+            <p className="text-sm sm:text-base leading-relaxed" style={{ color: colors.text.secondary }}>
+              {product.description}
+            </p>
+          </CardBody>
+        </Card>
+
+        <div className="text-center sm:text-left">
+          <Link to="/">
+            <Button variant="primary" size="lg" className="w-full sm:w-auto">На главную</Button>
+          </Link>
+        </div>
       </div>
     </div>
   )
