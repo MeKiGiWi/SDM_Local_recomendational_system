@@ -7,9 +7,11 @@ import { generateSessionId } from '../utils/session'
 import { getItem, setItem } from '../utils/storage'
 import {
   extractFeatures,
-  predictHeuristic,
+  predict,
+  initBitNet,
   personalize,
   getTopK,
+  getProductId,
 } from '../services/modelInference'
 import { getAllProducts } from '../data/productParser'
 
@@ -23,6 +25,11 @@ export interface UserProfile {
   balance: number
   monthlyIncome: number
   accountType: AccountType
+  seniorityMonths?: number
+  isNewCustomer?: number
+  sex?: number
+  segmentVip?: number
+  segmentStudent?: number
 }
 
 interface UserInputState extends UserProfile {
@@ -130,13 +137,15 @@ export const useUserInputStore = create<UserInputState>((set, get) => ({
   },
 
   fetchAd: async () => {
-    const { age, balance, monthlyIncome, accountType, currency, clickHistory, sessionId } = get()
+    const { age, balance, monthlyIncome, accountType, currency, clickHistory, sessionId, seniorityMonths, isNewCustomer, sex, segmentVip, segmentStudent } = get()
     set({ isLoading: true, error: null })
 
     try {
       let adResponse: AdSelectionResponse
 
       if (API_CONFIG.USE_LOCAL_MODEL) {
+        await initBitNet()
+
         const features = extractFeatures({
           age,
           balance,
@@ -144,14 +153,20 @@ export const useUserInputStore = create<UserInputState>((set, get) => ({
           accountType: ACCOUNT_MAP[accountType] ?? 0,
           currency: CURRENCY_MAP[currency] ?? 0,
           clicks: clickHistory,
+          seniorityMonths,
+          isNewCustomer,
+          sex,
+          segmentVip,
+          segmentStudent,
         })
 
-        const scores = predictHeuristic(features)
+        const scores = predict(features)
         const personalized = personalize(scores, clickHistory)
         const topIdx = getTopK(personalized, 1)[0]
 
         const allProducts = getAllProducts()
-        const product = allProducts[topIdx] ?? allProducts[0]
+        const prodId = getProductId(topIdx)
+        const product = allProducts.find((p) => p.id === prodId) ?? allProducts[0]
 
         adResponse = {
           adId: product.id,

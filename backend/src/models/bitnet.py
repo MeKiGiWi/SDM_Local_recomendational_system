@@ -19,6 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
+from pathlib import Path
 
 
 # ═══════════════════════════════════════════
@@ -160,6 +161,107 @@ class BitNetRecommender(nn.Module):
             "hidden_dim": self.blocks[0].attn.weight.shape[0] if self.blocks else 0,
             "num_layers": len(self.blocks),
         }
+
+
+# ═══════════════════════════════════════════
+# SimpleBitNet — архитектура для фронтенда
+# ═══════════════════════════════════════════
+
+class SimpleBitNet(nn.Module):
+    """BitNet b1.58 с архитектурой, совместимой с JS-инференсом.
+
+    Имена параметров совпадают с тем, что ожидает frontend/src/services/modelInference.ts:
+      - embed.weight          nn.Linear (w/o bias)
+      - blocks.N.0.norm.w     RMSNorm gamma
+      - blocks.N.0.weight     BitLinear158 weight
+      - blocks.N.0.bias       BitLinear158 bias
+      - norm.w                финальный RMSNorm gamma
+      - head.weight           nn.Linear weight
+      - head.bias             nn.Linear bias
+    """
+
+    def __init__(self, d_in=32, d_out=36, d_h=128, n_layers=3, dropout=0.1):
+        super().__init__()
+        self.embed = nn.Linear(d_in, d_h, bias=False)
+        self.blocks = nn.ModuleList([
+            nn.Sequential(BitLinear158(d_h, d_h), nn.Dropout(dropout))
+            for _ in range(n_layers)
+        ])
+        self.norm = RMSNorm(d_h)
+        self.head = nn.Linear(d_h, d_out)
+
+    def forward(self, x):
+        x = self.embed(x)
+        for b in self.blocks:
+            x = F.silu(b[0](x)) + x
+        return self.head(self.norm(x))
+
+    def export_info(self) -> dict:
+        params = sum(p.numel() for p in self.parameters())
+        weight_params = sum(
+            p.numel() for n, p in self.named_parameters() if 'weight' in n and p.dim() >= 2
+        )
+        bit_factor = 1.58
+        norm_params = params - weight_params
+        total_kb = (weight_params * bit_factor / 8 + norm_params * 2) / 1024
+        return {
+            "architecture": "SimpleBitNet-b1.58",
+            "total_parameters": params,
+            "weight_bits": 1.58,
+            "activation_bits": 8,
+            "model_size_kb": round(total_kb, 1),
+            "input_dim": self.embed.in_features,
+            "num_products": self.head.out_features,
+            "hidden_dim": self.embed.out_features,
+            "num_layers": len(self.blocks),
+        }
+
+
+# ═══════════════════════════════════════════
+# Экспорт весов для фронтенда
+# ═══════════════════════════════════════════
+
+def export_frontend_weights(model: SimpleBitNet, output_dir: Path, feature_names: list | None = None, product_names: list | None = None):
+    """Экспорт весов SimpleBitNet в JSON для фронтенда + feature_order.json."""
+    import json
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    model.eval()
+    weights = {}
+    for name, param in model.named_parameters():
+        if 'weight' in name and param.dim() >= 2:
+            p = param.detach()
+            g = float(p.abs().mean())
+            w = torch.clamp(torch.round(p / (g + 1e-8)), -1, 1).cpu().numpy()
+            weights[name] = {'data': w.tolist(), 'gamma': g, 'shape': list(w.shape)}
+        else:
+            weights[name] = {'data': param.detach().cpu().numpy().tolist(), 'shape': list(param.detach().shape)}
+
+    with open(output_dir / "bitnet_weights.json", 'w') as f:
+        json.dump(weights, f)
+
+    # feature_order.json — маппинг индексов модели → productId
+    if product_names is None:
+        product_names = [f"prod_{i}" for i in range(model.head.out_features)]
+    if feature_names is None:
+        feature_names = [f"feat_{i}" for i in range(model.embed.in_features)]
+
+    order = {
+        "input_features": feature_names,
+        "product_names": product_names,
+    }
+    with open(output_dir / "feature_order.json", 'w') as f:
+        json.dump(order, f, indent=2, ensure_ascii=False)
+
+    # Нормализация (фронтенд использует жёстко заданные константы, сохраняем для справки)
+    norm = {"mean": [35, 50000, 60000, 0, 0], "std": [15, 30000, 40000, 3, 3]}
+    with open(output_dir / "normalization.json", 'w') as f:
+        json.dump(norm, f)
+
+    print(f"  Weights → {output_dir / 'bitnet_weights.json'}")
+    print(f"  Feature order → {output_dir / 'feature_order.json'}")
+    print(f"  Products ({len(product_names)}): {product_names[:5]}...")
 
 
 # ═══════════════════════════════════════════

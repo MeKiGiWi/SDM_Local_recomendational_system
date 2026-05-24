@@ -1,5 +1,5 @@
 """
-Скачивание Santander датасета, обучение BitNet, экспорт для фронтенда.
+Обучение BitNet на кастомном датасете (train_wide.csv) и экспорт для фронтенда.
 
 Запуск: python backend/scripts/train_santander.py
 """
@@ -20,73 +20,64 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(BACKEND))
 
 # ═══════════════════════════════════════
-# 1. Загрузка датасета Santander
+# 1. Загрузка датасета
 # ═══════════════════════════════════════
 
-print("=== Downloading Santander dataset ===")
-csv_path = DATASET_DIR / "train_ver2.csv"
+print("=== Loading custom dataset ===")
+csv_path = DATASET_DIR / "train_wide.csv"
+
 if csv_path.exists():
-    print(f"  Found local dataset: {csv_path}")
-else:
-    try:
-        import kagglehub
-        path = kagglehub.competition_download("santander-product-recommendation")
-        print(f"  Downloaded to: {path}")
-        import os, zipfile
-        for f in os.listdir(path):
-            if f.endswith('.zip'):
-                with zipfile.ZipFile(os.path.join(path, f), 'r') as zf:
-                    zf.extractall(path)
-        csv_path = Path(path) / "train_ver2.csv"
-        print(f"  CSV: {csv_path.exists()}")
-    except Exception as e:
-        print(f"  Kaggle download failed: {e}")
-        csv_path = None
+    print(f"  Loading {csv_path}...")
+    df = pd.read_csv(csv_path, low_memory=False)
+    df = df.sample(frac=0.1, random_state=42).reset_index(drop=True)
+    n = len(df)
+    print(f"  Rows: {n}")
 
-# ═══════════════════════════════════════
-# 2. Препроцессинг
-# ═══════════════════════════════════════
+    # Фичи: age, income, is_new_customer → маппим на формат фронтенда
+    # Фронтенд: [age_norm, balance_norm, income_norm, accountType, currency, click_hashes...]
+    # Наши данные: age, seniority_months, income, is_new_customer, sex, segment
 
-print("\n=== Preprocessing ===")
+    X_raw = np.zeros((n, 32), dtype=np.float32)
 
-if csv_path and csv_path.exists():
-    print("  Loading train_ver2.csv...")
-    df = pd.read_csv(csv_path, nrows=50000, low_memory=False)
-    
-    FEATURES = ['age', 'antiguedad', 'renta', 'ind_nuevo', 'ind_actividad_cliente']
-    available = [c for c in FEATURES if c in df.columns]
-    print(f"  Features: {available}")
-    
-    df_num = df[available].apply(pd.to_numeric, errors="coerce")
-    X_raw = df_num.fillna(0).values.astype(np.float32)
-    
-    product_cols = [c for c in df.columns if c.startswith('ind_') if c != 'ind_nuevo']
-    print(f"  Products: {len(product_cols)}")
-    
-    df_y = df[product_cols].apply(pd.to_numeric, errors="coerce")
-    y_raw = df_y.fillna(0).values.astype(np.float32)
-    
-    # Нормализация
-    X_mean = X_raw.mean(axis=0)
-    X_std = X_raw.std(axis=0) + 1e-8
-    X = np.nan_to_num((X_raw - X_mean) / X_std)
-    
-    # Пад до 32 фичей
-    if X.shape[1] < 32:
-        X = np.pad(X, ((0,0), (0, 32 - X.shape[1])))
-    X = X[:, :32]
-    
-    # Пад до 36 продуктов
-    y = np.zeros((y_raw.shape[0], 36), dtype=np.float32)
+    X_raw[:, 0] = pd.to_numeric(df["age"], errors="coerce").fillna(35).values  # age
+    X_raw[:, 1] = pd.to_numeric(df["income"], errors="coerce").fillna(50000).values  # balance proxy
+    X_raw[:, 2] = pd.to_numeric(df["income"], errors="coerce").fillna(60000).values  # monthlyIncome
+    X_raw[:, 3] = pd.to_numeric(df["is_new_customer"], errors="coerce").fillna(0).values  # accountType proxy
+    X_raw[:, 4] = (df["sex"].map({"F": 0.0, "M": 1.0}).fillna(0.0).values)  # currency proxy
+    X_raw[:, 5] = pd.to_numeric(df["seniority_months"], errors="coerce").fillna(0).values / 120.0
+    X_raw[:, 6] = (df["segment"] == "VIP").astype(np.float32).values
+    X_raw[:, 7] = (df["segment"] == "STUDENTS").astype(np.float32).values
+
+    # Нормализация как во фронтенде
+    X = np.zeros((n, 32), dtype=np.float32)
+    X[:, 0] = (X_raw[:, 0] - 35) / 15
+    X[:, 1] = (X_raw[:, 1] - 50000) / 30000
+    X[:, 2] = (X_raw[:, 2] - 60000) / 40000
+    X[:, 3] = X_raw[:, 3] / 3
+    X[:, 4] = X_raw[:, 4] / 3
+    X[:, 5] = X_raw[:, 5]
+    X[:, 6] = X_raw[:, 6]
+    X[:, 7] = X_raw[:, 7]
+
+    save_mean = X_raw[:, :8].mean(axis=0).tolist()
+    save_std = X_raw[:, :8].std(axis=0).tolist()
+
+    # Продукты
+    product_cols = [c for c in df.columns if c not in ["user_id", "sex", "age", "is_new_customer", "seniority_months", "income", "segment"]]
+    y_raw = df[product_cols].fillna(0).values.astype(np.float32)
+
+    y = np.zeros((n, 36), dtype=np.float32)
     n_prod = min(y_raw.shape[1], 36)
     y[:, :n_prod] = y_raw[:, :n_prod]
-    
+
+    print(f"  Features: age, income, is_new_customer, sex, seniority_months, segment")
+    print(f"  Products: {len(product_cols)} → padded to 36")
     print(f"  X: {X.shape}, y: {y.shape}")
 else:
-    print("  Using synthetic data (dataset not found)")
+    print("  Dataset not found, using synthetic data")
     rng = np.random.RandomState(42)
     n = 10000
-    X = np.column_stack([
+    X_raw = np.column_stack([
         np.clip(rng.normal(35, 15, n), 18, 90),
         np.clip(rng.normal(50000, 30000, n), 0, None),
         np.clip(rng.normal(60000, 40000, n), 0, None),
@@ -94,8 +85,16 @@ else:
         rng.randint(0, 4, n).astype(np.float32),
         rng.normal(0, 1, (n, 27)),
     ]).astype(np.float32)
-    X = (X - X.mean(0)) / (X.std(0) + 1e-8)
-    X = np.nan_to_num(X)
+    X = np.zeros((n, 32), dtype=np.float32)
+    X[:, 0] = (X_raw[:, 0] - 35) / 15
+    X[:, 1] = (X_raw[:, 1] - 50000) / 30000
+    X[:, 2] = (X_raw[:, 2] - 60000) / 40000
+    X[:, 3] = X_raw[:, 3] / 3
+    X[:, 4] = X_raw[:, 4] / 3
+    X[:, 5:] = X_raw[:, 5:32]
+
+    save_mean = X_raw[:, :5].mean(axis=0).tolist()
+    save_std = X_raw[:, :5].std(axis=0).tolist()
 
     y = np.zeros((n, 36), dtype=np.float32)
     for i in range(36):
@@ -104,7 +103,7 @@ else:
         y[:, i] = (rng.random(n) < prob).astype(np.float32)
 
 # ═══════════════════════════════════════
-# 3. BitNet b1.58 модель
+# 2. BitNet b1.58 модель
 # ═══════════════════════════════════════
 
 print("\n=== Training BitNet b1.58 ===")
@@ -126,11 +125,9 @@ class BitLinear(nn.Module):
         self.bias = nn.Parameter(torch.zeros(d_out))
     def forward(self, x):
         x = self.norm(x)
-        # act quant int8
         s = x.abs().max(-1, keepdim=True).values.clamp(1e-8) / 127
         xq = torch.clamp(torch.round(x / s), -127, 127) * s
         xq = xq.detach() + x - x.detach()
-        # weight quant 1.58
         g = self.weight.abs().mean()
         w = torch.clamp(torch.round(self.weight / (g+1e-8)), -1, 1) * g
         w = w.detach() + self.weight - self.weight.detach()
@@ -179,7 +176,7 @@ for epoch in range(15):
     print(f"  Epoch {epoch+1:2d}: loss={total/(len(X_tr)//128+1):.4f} val={vl:.4f}")
 
 # ═══════════════════════════════════════
-# 4. Экспорт весов для фронтенда
+# 3. Экспорт весов для фронтенда
 # ═══════════════════════════════════════
 
 print("\n=== Exporting model weights for frontend ===")
@@ -195,17 +192,25 @@ for name, param in model.named_parameters():
     else:
         weights[name] = {'data': param.detach().cpu().numpy().tolist(), 'shape': list(param.detach().shape)}
 
-# Сохраняем
 export_dir = ROOT / "frontend" / "public" / "model"
 export_dir.mkdir(parents=True, exist_ok=True)
 
 with open(export_dir / "bitnet_weights.json", 'w') as f:
     json.dump(weights, f)
 print(f"  Weights saved: {export_dir / 'bitnet_weights.json'}")
+
+# Normalization params for frontend
+norm_data = {
+    "mean": save_mean,
+    "std": save_std,
+    "feature_names": ["age", "balance", "monthlyIncome", "accountType", "currency", "seniority_months", "segment_vip", "segment_students"],
+}
+with open(export_dir / "normalization.json", 'w') as f:
+    json.dump(norm_data, f)
 print(f"  Norms saved:   {export_dir / 'normalization.json'}")
 
 # ═══════════════════════════════════════
-# 5. Проверка
+# 4. Проверка
 # ═══════════════════════════════════════
 
 print("\n=== Verification ===")
@@ -222,6 +227,5 @@ params = sum(p.numel() for p in model.parameters())
 w_params = sum(p.numel() for n, p in model.named_parameters() if 'weight' in n and p.dim()>=2)
 size_kb = (w_params * 1.58 / 8 + (params - w_params) * 2) / 1024
 print(f"\n  Model: {params:,} params, ~{size_kb:.0f} KB (1.58-bit)")
-print(f"  Real data: {'YES' if csv_path and csv_path.exists() else 'synthetic'}")
 print(f"  Weights → frontend/public/model/bitnet_weights.json")
 print("\nDONE: модель обучена и экспортирована во фронтенд")

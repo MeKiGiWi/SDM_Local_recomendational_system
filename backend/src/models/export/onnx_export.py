@@ -14,7 +14,7 @@ from pathlib import Path
 import torch
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.models.bitnet import BitNetRecommender
@@ -36,7 +36,7 @@ def export_to_onnx(
         num_layers=num_layers,
     )
 
-    ckpt_dir = PROJECT_ROOT / "models" / "checkpoints"
+    ckpt_dir = PROJECT_ROOT / "backend" / "models" / "checkpoints"
     ckpt = checkpoint_path or (ckpt_dir / "bitnet_best.pt")
     if ckpt.exists():
         model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
@@ -51,7 +51,7 @@ def export_to_onnx(
     _quantize_for_export(model)
 
     dummy = torch.randn(1, input_dim)
-    export_dir = PROJECT_ROOT / "models" / "export"
+    export_dir = PROJECT_ROOT / "backend" / "models" / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
     out = output_path or (export_dir / "bitnet_recommender.onnx")
 
@@ -90,12 +90,12 @@ def export_to_onnx(
 
 def _quantize_for_export(model: BitNetRecommender):
     """Заморозка квантованных весов перед ONNX-экспортом."""
-    from src.models.bitnet import BitLinear, quantize_weights
+    from src.models.bitnet import BitLinear158, weight_quant_b158
 
     for module in model.modules():
-        if isinstance(module, BitLinear):
+        if isinstance(module, BitLinear158):
             with torch.no_grad():
-                w = quantize_weights(module.weight)
+                w = weight_quant_b158(module.weight)
                 module.weight.data = w
 
 

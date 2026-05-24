@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 .venv/
 node_modules/
+
+models/
+backend/models/checkpoints/bitnet_best.pt
+backend/models/export/bitnet_recommender.gguf

@@ -1,14 +1,3 @@
-/**
- * BitNet b1.58 JS-инференс на реальных весах.
- *
- * Загружает bitnet_weights.json (обученную модель) и normaliztion.json.
- * Если файлов нет — использует эвристику-заглушку.
- *
- * Использование:
- *   await initBitNet()          // загрузить веса
- *   const scores = predict(features)  // [36] float → скоры продуктов
- */
-
 export interface UserFeatures {
   age: number
   balance: number
@@ -16,34 +5,45 @@ export interface UserFeatures {
   accountType: number
   currency: number
   clicks: Record<string, number>
+  seniorityMonths?: number
+  isNewCustomer?: number
+  sex?: number
+  segmentVip?: number
+  segmentStudent?: number
 }
 
-// ─── Веса модели ───
 let modelWeights: Record<string, { data: number[][]; gamma?: number; shape: number[] }> | null = null
+let productNames: string[] = []
 let initialized = false
 
 export async function initBitNet(): Promise<boolean> {
   if (initialized) return true
   try {
-    const [wResp, nResp] = await Promise.all([
+    const [wResp, fResp] = await Promise.all([
       fetch('/model/bitnet_weights.json'),
-      fetch('/model/normalization.json'),
+      fetch('/model/feature_order.json'),
     ])
-    if (wResp.ok && nResp.ok) {
+    if (wResp.ok && fResp.ok) {
       modelWeights = await wResp.json()
-      await nResp.json()
+      const featureOrder = await fResp.json()
+      productNames = featureOrder.product_names || []
       initialized = true
-      console.log('[BitNet] Loaded real weights:', Object.keys(modelWeights || {}).length, 'tensors')
       return true
     }
   } catch (e) {
-    console.warn('[BitNet] No weights.json found, using heuristic')
+    console.warn('[BitNet] No weights found, using heuristic')
   }
   initialized = true
   return false
 }
 
-// ─── JS-реализация операций BitNet ───
+export function getProductIndex(productId: string): number {
+  return productNames.indexOf(productId)
+}
+
+export function getProductId(modelIndex: number): string | null {
+  return productNames[modelIndex] ?? null
+}
 
 function rmsNorm(x: Float32Array, gamma: Float32Array): Float32Array {
   let sq = 0
@@ -67,7 +67,6 @@ function actQuant8(x: Float32Array): Float32Array {
 }
 
 function bitLinear(x: Float32Array, wData: number[][], gamma: number, bias: number[]): Float32Array {
-  // x: [in_dim], w: [out_dim][in_dim], gamma: scalar, bias: [out_dim]
   const outDim = wData.length
   const inDim = x.length
   const out = new Float32Array(outDim)
@@ -75,7 +74,7 @@ function bitLinear(x: Float32Array, wData: number[][], gamma: number, bias: numb
     let sum = bias[i] || 0
     const row = wData[i]
     for (let j = 0; j < inDim; j++) {
-      sum += row[j] * gamma * x[j]  // w_quant = clamp(round(w/gamma), -1,1) * gamma → w_data[j] * gamma
+      sum += row[j] * gamma * x[j]
     }
     out[i] = sum
   }
@@ -98,8 +97,6 @@ function getWeights(pattern: string): { w: number[][]; g: number; b: number[] } 
   return { w: w.data as number[][], g: w.gamma ?? 1, b: bias }
 }
 
-// ─── Извлечение фичей ───
-
 export function extractFeatures(f: UserFeatures): Float32Array {
   const feats = new Float32Array(32)
   feats[0] = (f.age - 35) / 15
@@ -107,20 +104,18 @@ export function extractFeatures(f: UserFeatures): Float32Array {
   feats[2] = (f.monthlyIncome - 60000) / 40000
   feats[3] = f.accountType / 3
   feats[4] = f.currency / 3
+  feats[5] = (f.seniorityMonths ?? 0) / 120
+  feats[6] = f.isNewCustomer ?? 0
+  feats[7] = f.segmentVip ?? 0
+  feats[8] = f.segmentStudent ?? 0
   for (const [id, count] of Object.entries(f.clicks)) {
-    const idx = 5 + (hashStr(id) % 24)
-    feats[idx] = Math.min(count / 100, 1)
+    const idx = productNames.indexOf(id)
+    if (idx >= 0) {
+      feats[9 + (idx % 23)] = Math.min(count / 100, 1)
+    }
   }
   return feats
 }
-
-function hashStr(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0 }
-  return Math.abs(h)
-}
-
-// ─── Предиктор ───
 
 export function predict(feats: Float32Array): Float32Array {
   if (!modelWeights) return predictHeuristic(feats)
@@ -128,7 +123,6 @@ export function predict(feats: Float32Array): Float32Array {
   try {
     let x = feats
 
-    // Embed
     const emb = getWeights('embed.weight')
     if (emb) {
       const out = new Float32Array(emb.w.length)
@@ -140,7 +134,6 @@ export function predict(feats: Float32Array): Float32Array {
       x = out
     }
 
-    // Blocks: Norm → ActQuant → BitLinear → SiLU → +residual
     const blockKeys = Object.keys(modelWeights).filter(k => k.includes('blocks') && k.includes('weight'))
     for (const bk of blockKeys) {
       const prefix = bk.replace(/\.weight$/, '')
@@ -149,32 +142,23 @@ export function predict(feats: Float32Array): Float32Array {
       if (!bl || !norm) continue
 
       const nGamma = new Float32Array(norm.data as unknown as number[])
-
-      // RMSNorm
       let xn = rmsNorm(x, nGamma)
-      // ActQuant
       xn = actQuant8(xn)
-      // BitLinear
       let xl = bitLinear(xn, bl.w, bl.g, bl.b)
-      // SiLU + residual
       xl = silu(xl)
-      // Residual (both should be same dim)
       if (xl.length === x.length) {
-        x = new Float32Array(xl.length)
-        for (let i = 0; i < x.length; i++) x[i] = xl[i] + feats[i] // wrong — should be previous x
-      }
-      // Fix: use x from previous iteration
-      const prevX = new Float32Array(x)
-      for (let i = 0; i < Math.min(xl.length, prevX.length); i++) {
-        x[i] = xl[i] + prevX[i]
+        const prevX = new Float32Array(x)
+        for (let i = 0; i < Math.min(xl.length, prevX.length); i++) {
+          x[i] = xl[i] + prevX[i]
+        }
       }
     }
 
-    // Final Norm
-    const fn = modelWeights['norm_out.' + (Object.keys(modelWeights || {}).find(k => k.includes('norm_out') && k.includes('w'))?.replace('norm_out.', '') ?? 'w')]
-    if (fn) x = rmsNorm(x, new Float32Array(fn.data as unknown as number[]))
+    const fnKey = Object.keys(modelWeights || {}).find(k => k.includes('norm') && k.includes('.w'))
+    if (fnKey) {
+      x = rmsNorm(x, new Float32Array(modelWeights[fnKey].data as unknown as number[]))
+    }
 
-    // Head
     const hd = getWeights('head.weight')
     if (hd) x = bitLinear(x, hd.w, hd.g, hd.b)
 
@@ -184,8 +168,6 @@ export function predict(feats: Float32Array): Float32Array {
     return predictHeuristic(feats)
   }
 }
-
-// ─── Эвристика-заглушка ───
 
 export function predictHeuristic(feats: Float32Array): Float32Array {
   const scores = new Float32Array(36)
@@ -199,13 +181,13 @@ export function predictHeuristic(feats: Float32Array): Float32Array {
   return scores
 }
 
-// ─── Персонализация ───
-
 export function personalize(scores: Float32Array, clicks: Record<string, number>): Float32Array {
   const adj = new Float32Array(scores)
   for (const [id, count] of Object.entries(clicks)) {
-    const idx = hashStr(id) % 36
-    adj[idx] += 0.05 * Math.min(count, 20)
+    const idx = getProductIndex(id)
+    if (idx >= 0 && idx < adj.length) {
+      adj[idx] += 0.05 * Math.min(count, 20)
+    }
   }
   return adj
 }

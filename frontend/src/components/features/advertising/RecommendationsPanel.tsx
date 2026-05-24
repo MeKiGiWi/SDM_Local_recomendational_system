@@ -3,14 +3,17 @@ import { Link } from 'react-router-dom'
 import type { AdProduct } from '../../../data/productParser'
 import {
   extractFeatures,
-  predictHeuristic,
+  predict,
+  initBitNet,
   personalize,
   getTopK,
+  getProductId,
 } from '../../../services/modelInference'
 import { getAllProducts, getHomeAdProducts } from '../../../data/productParser'
 import { colors } from '../../../config/theme'
 import { SafeIcon } from '../../ui/Icons'
 import type { ProfileData } from './ClientSelector'
+import { useUserInputStore } from '../../../store/userInputStore'
 
 const CATEGORY_ICONS: Record<string, { emoji: string; bg: string }> = {
   deposits_and_savings_accounts_individuals: { emoji: '🏦', bg: '#EBF2FF' },
@@ -38,10 +41,11 @@ function getCategoryTag(cat: string): string {
   return CATEGORY_TAGS[cat] ?? cat
 }
 
-function HeroRecCard({ product }: { product: AdProduct }) {
+function HeroRecCard({ product, onTrack }: { product: AdProduct; onTrack: (id: string) => void }) {
   return (
     <Link
       to={`/product/${product.id}`}
+      onClick={() => onTrack(product.id)}
       className="block rounded-2xl overflow-hidden card-shadow-hover animate-fade-in-up w-full"
       style={{
         background: `linear-gradient(135deg, ${colors.primary.DEFAULT} 0%, ${colors.primary.dark} 100%)`,
@@ -78,12 +82,13 @@ function HeroRecCard({ product }: { product: AdProduct }) {
   )
 }
 
-function SecondaryRecCard({ product, rank }: { product: AdProduct; rank: number }) {
+function SecondaryRecCard({ product, rank, onTrack }: { product: AdProduct; rank: number; onTrack: (id: string) => void }) {
   const meta = getCategoryMeta(product.category)
 
   return (
     <Link
       to={`/product/${product.id}`}
+      onClick={() => onTrack(product.id)}
       className="block rounded-2xl p-4 sm:p-5 card-shadow card-shadow-hover animate-fade-in-up bg-white h-full w-full"
       style={{
         border: `1px solid ${colors.border}`,
@@ -122,6 +127,7 @@ function SecondaryRecCard({ product, rank }: { product: AdProduct; rank: number 
 }
 
 function useRecommendations(profile: ProfileData | null, mode: 'profile' | 'popular'): AdProduct[] {
+  const clickHistory = useUserInputStore((s) => s.clickHistory)
   return useMemo(() => {
     if (mode === 'popular') {
       return getHomeAdProducts().slice(0, 5)
@@ -131,20 +137,29 @@ function useRecommendations(profile: ProfileData | null, mode: 'profile' | 'popu
     const CURRENCY_MAP: Record<string, number> = { RUB: 0, USD: 1, EUR: 2, CNY: 3 }
     const ACCOUNT_MAP: Record<string, number> = { current: 0, savings: 1, deposit: 2, card: 3 }
 
+    void initBitNet()
     const features = extractFeatures({
       age: profile.age,
       balance: profile.balance,
       monthlyIncome: profile.monthlyIncome,
       accountType: ACCOUNT_MAP[profile.accountType] ?? 0,
       currency: CURRENCY_MAP[profile.currency] ?? 0,
-      clicks: {},
+      clicks: clickHistory,
+      seniorityMonths: (profile as any).seniorityMonths,
+      isNewCustomer: (profile as any).isNewCustomer,
+      sex: (profile as any).sex,
+      segmentVip: (profile as any).segmentVip,
+      segmentStudent: (profile as any).segmentStudent,
     })
-    const scores = predictHeuristic(features)
-    const personalized = personalize(scores, {})
+    const scores = predict(features)
+    const personalized = personalize(scores, clickHistory)
     const top5 = getTopK(personalized, 5)
     const allProducts = getAllProducts()
-    return top5.map((idx) => allProducts[idx] ?? allProducts[0])
-  }, [profile, mode])
+    return top5.map((idx) => {
+      const prodId = getProductId(idx)
+      return allProducts.find((p) => p.id === prodId) ?? allProducts[0]
+    })
+  }, [profile, mode, clickHistory])
 }
 
 function ModeSwitch({
@@ -192,6 +207,7 @@ function ModeSwitch({
 export function RecommendationsPanel({ profile }: { profile: ProfileData | null }) {
   const [mode, setMode] = useState<'profile' | 'popular'>('profile')
   const products = useRecommendations(profile, mode)
+  const trackClick = useUserInputStore((s) => s.trackClick)
 
   return (
     <div
@@ -209,13 +225,13 @@ export function RecommendationsPanel({ profile }: { profile: ProfileData | null 
 
       {products.length > 0 && (
         <div className="mb-3 sm:mb-4">
-          <HeroRecCard product={products[0]} />
+          <HeroRecCard product={products[0]} onTrack={trackClick} />
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {products.slice(1).map((p, i) => (
-          <SecondaryRecCard key={p.id} product={p} rank={i + 2} />
+          <SecondaryRecCard key={p.id} product={p} rank={i + 2} onTrack={trackClick} />
         ))}
       </div>
     </div>

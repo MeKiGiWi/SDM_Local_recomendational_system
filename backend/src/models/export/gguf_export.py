@@ -22,7 +22,7 @@ from typing import Dict, List, Tuple
 import torch
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.models.bitnet import BitNetRecommender, weight_quant_b158
@@ -54,7 +54,7 @@ def export_to_gguf(
     output_path: Path | None = None,
 ) -> Path:
     """Экспорт BitNetRecommender в GGUF."""
-    ckpt_dir = PROJECT_ROOT / "models" / "checkpoints"
+    ckpt_dir = PROJECT_ROOT / "backend" / "models" / "checkpoints"
     ckpt = checkpoint_path or (ckpt_dir / "bitnet_best.pt")
 
     if not ckpt.exists():
@@ -109,7 +109,7 @@ def export_to_gguf(
         "bitnet.tensor_count": len(quantized_tensors),
     }
 
-    export_dir = PROJECT_ROOT / "models" / "export"
+    export_dir = PROJECT_ROOT / "backend" / "models" / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
     out = output_path or (export_dir / "bitnet_recommender.gguf")
 
@@ -136,12 +136,19 @@ def export_to_gguf(
     print(f"  python run_inference.py -m {out} -f user_features.bin")
 
     # Сохраняем порядок фичей
-    feature_order = [
-        "age", "balance", "monthly_income", "account_type", "currency",
-    ] + [f"click_{i}" for i in range(27)]  # 32 features
+    feature_names_path = ckpt_dir / "feature_names.json"
+    if feature_names_path.exists():
+        with open(feature_names_path) as f:
+            names_data = json.load(f)
+        feature_order = names_data.get("input_features", [])
+        product_names = names_data.get("product_names", [])
+    else:
+        feature_order = [f"feat_{i}" for i in range(info.get("input_dim", 32))]
+        product_names = [f"prod_{i}" for i in range(info.get("num_products", 36))]
+
     order_path = export_dir / "feature_order.json"
     with open(order_path, 'w') as f:
-        json.dump(feature_order, f, indent=2, ensure_ascii=False)
+        json.dump({"input_features": feature_order, "product_names": product_names}, f, indent=2, ensure_ascii=False)
 
     return out
 
