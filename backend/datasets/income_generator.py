@@ -5,11 +5,24 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.impute import SimpleImputer
 
 
 RANDOM_SEED = 52
 rng = np.random.default_rng(RANDOM_SEED)
+
+
+def get_result_cols(path):
+    df = pd.read_csv(path)
+
+    cols = df.columns.tolist()
+
+    cols.remove("income")
+
+    cols.append("income_generated")
+    cols.append("income_filled")
+
+
+    return cols
 
 
 def make_age_group(age):
@@ -33,7 +46,30 @@ def make_age_group(age):
 def prepare_income_features(df):
     df = df.copy()
 
-    product_cols = [col for col in df.columns if '-' in col]
+    # normalize sex (drop 3 values)
+    df = df.dropna(subset=['sex'])
+
+    # normalize seniority_months (drop 2 negative values)
+    df["seniority_months"] = pd.to_numeric(df["seniority_months"], errors='coerce')
+    df.loc[df["seniority_months"] < 0, "seniority_months"] = np.nan
+    df = df.dropna(subset=["seniority_months"])
+    df["seniority_months"] = df["seniority_months"].round().astype('Int64')
+
+    # normalize age (drop values not in [14, 95])
+    df["age"] = pd.to_numeric(df["age"], errors='coerce')
+    df.loc[
+        df['age'] < 14 | (df['age'] > 95),
+        "age" 
+    ] = np.nan
+    df = df.dropna(subset=["age"])
+    df["age"] = df["age"].round().astype('Int64')
+
+    # normalize segment
+    df['segment'] = df['segment'].fillna('UNKNOWN')
+
+    PREFIXES = ['dep-', 'card-', 'rko-', 'loan-', 'srv-', 'biz-']
+
+    product_cols = [col for col in df.columns if col.startswith(tuple(PREFIXES))]
 
     dep_cols = [col for col in product_cols if col.startswith('dep-')]
     card_cols = [col for col in product_cols if col.startswith('card-')]
@@ -42,21 +78,8 @@ def prepare_income_features(df):
     srv_cols = [col for col in product_cols if col.startswith('srv-')]
     biz_cols = [col for col in product_cols if col.startswith('biz-')]
 
-    # clean seniority_months
-    df["seniority_months_clean"] = pd.to_numeric(df["seniority_months"], errors='coerce')
-    df.loc[df["seniority_months_clean"] < 0, "seniority_months_clean"] = np.nan
-    df["seniority_months_clean"] = df["seniority_months_clean"].round().astype('Int64')
-
-    # normalize age [14, 100]
-    df["age_clean"] = pd.to_numeric(df["age"], errors='coerce')
-    df.loc[
-        (df["age_clean"] < 14) | (df["age_clean"] > 100), 
-        "age_clean"
-    ] = np.nan
-    df["age_clean"] = df["age_clean"].round().astype('Int64')
-
     # create age groups
-    df["age_group"] = df["age_clean"].apply(make_age_group)
+    df["age_group"] = df["age"].apply(make_age_group)
 
     # agregate product features
     df["products_count"] = df[product_cols].sum(axis=1)
@@ -101,8 +124,9 @@ def prepare_income_features(df):
 
     return df, product_cols
 
-def generate_income_from_existing_data(df):
-    df = df.copy()
+
+def generate_income_from_existing_data(path):
+    df = pd.read_csv(path)
 
     # prepare features
     df, product_cols = prepare_income_features(df)
@@ -113,7 +137,7 @@ def generate_income_from_existing_data(df):
 
     # emissons limit
     lower = train_df["income"].quantile(0.005)
-    upper = train_df["income"].quantile(0.995)
+    upper = train_df["income"].quantile(0.900)
 
     train_df = train_df[
         (train_df["income"] >= lower) & 
@@ -132,9 +156,9 @@ def generate_income_from_existing_data(df):
 
     # numerical features
     num_features = [
-        "age_clean",
+        "age",
         "is_new_customer",
-        "seniority_months_clean",
+        "seniority_months",
         "products_count",
         "dep_count",
         "card_count",
@@ -160,15 +184,15 @@ def generate_income_from_existing_data(df):
         transformers=[
             (
                 'cat', 
-                OneHotEncoder(handle_unknown='ignore'), 
+                OneHotEncoder(
+                    handle_unknown='ignore',
+                    sparse_output=False
+                ), 
                 cat_features
-            ),
-            (
-                'num', 
-                SimpleImputer(strategy='median'), 
-                num_features
             )
-        ]
+        ],
+        remainder='passthrough',
+        sparse_threshold=0
     )
 
     model = HistGradientBoostingRegressor(
@@ -253,13 +277,18 @@ def generate_income_from_existing_data(df):
 
     df["income_was_generated"] = missing_mask.astype(int)
 
+    # drop intermediate columns
+    cols = get_result_cols(path)
+    df = df[cols]
+
+
     return df, pipeline
 
 
 def main():
-    df = pd.read_csv("backend/datasets/raw/train_wide.csv")
+    path = "backend/datasets/raw/train_wide.csv"
 
-    df_income, income_model = generate_income_from_existing_data(df)
+    df_income, income_model = generate_income_from_existing_data(path)
 
     df_income.to_csv("backend/datasets/processed/v1/train_wide_with_income.csv", index=False)
 
