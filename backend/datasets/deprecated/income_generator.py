@@ -44,29 +44,6 @@ def make_age_group(age):
 
 
 def prepare_income_features(df):
-    df = df.copy()
-
-    # normalize sex (drop 3 values)
-    df = df.dropna(subset=['sex'])
-
-    # normalize seniority_months (drop 2 negative values)
-    df["seniority_months"] = pd.to_numeric(df["seniority_months"], errors='coerce')
-    df.loc[df["seniority_months"] < 0, "seniority_months"] = np.nan
-    df = df.dropna(subset=["seniority_months"])
-    df["seniority_months"] = df["seniority_months"].round().astype('Int64')
-
-    # normalize age (drop values not in [14, 95])
-    df["age"] = pd.to_numeric(df["age"], errors='coerce')
-    df.loc[
-        df['age'] < 14 | (df['age'] > 95),
-        "age" 
-    ] = np.nan
-    df = df.dropna(subset=["age"])
-    df["age"] = df["age"].round().astype('Int64')
-
-    # normalize segment
-    df['segment'] = df['segment'].fillna('UNKNOWN')
-
     PREFIXES = ['dep-', 'card-', 'rko-', 'loan-', 'srv-', 'biz-']
 
     product_cols = [col for col in df.columns if col.startswith(tuple(PREFIXES))]
@@ -137,7 +114,7 @@ def generate_income_from_existing_data(path):
 
     # emissons limit
     lower = train_df["income"].quantile(0.005)
-    upper = train_df["income"].quantile(0.900)
+    upper = train_df["income"].quantile(0.990)
 
     train_df = train_df[
         (train_df["income"] >= lower) & 
