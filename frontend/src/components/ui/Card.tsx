@@ -11,8 +11,9 @@ export function Card({ className, children, onClick, hoverable }: CardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-xl border border-gray-200 shadow-sm',
-        hoverable && 'hover:shadow-md hover:border-gray-300 transition-all cursor-pointer',
+        'bg-[var(--color-sdm-surface)] rounded-2xl border border-[var(--color-sdm-border)] shadow-[var(--shadow-card)]',
+        hoverable &&
+          'hover:shadow-[var(--shadow-card-hover)] hover:border-[var(--color-sdm-border-subtle)] transition-[box-shadow,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer',
         className
       )}
       onClick={onClick}
@@ -23,7 +24,11 @@ export function Card({ className, children, onClick, hoverable }: CardProps) {
 }
 
 export function CardHeader({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn('px-5 py-4 border-b border-gray-100', className)}>{children}</div>
+  return (
+    <div className={cn('px-5 py-4 border-b border-[var(--color-sdm-border-subtle)]', className)}>
+      {children}
+    </div>
+  )
 }
 
 export function CardBody({ className, children }: { className?: string; children: React.ReactNode }) {

@@ -1,99 +1,74 @@
 import type { ProfileData } from './ClientSelector'
 import { colors, formatRubles } from '../../../config/theme'
-import { WalletIcon, TrendUpIcon, ShieldIcon, DropletIcon, TargetIcon } from '../../ui/Icons'
+import { getTraitGlyph } from '../../../config/traitGlyphs'
+import { GlyphWallet } from '../../ui/BankGlyphs'
+import { GlyphBadge } from '../../ui/GlyphBadge'
 
-const CHAR_CONFIG: Record<
-  ProfileData['characteristics'][number]['icon'],
-  { bg: string; color: string; Icon: typeof TrendUpIcon }
-> = {
-  trend: { bg: colors.accent.green.bg, color: colors.accent.green.icon, Icon: TrendUpIcon },
-  shield: { bg: colors.accent.blue.bg, color: colors.accent.blue.icon, Icon: ShieldIcon },
-  droplet: { bg: colors.accent.blue.bg, color: colors.accent.blue.icon, Icon: DropletIcon },
-  target: { bg: colors.accent.purple.bg, color: colors.accent.purple.icon, Icon: TargetIcon },
-  rocket: { bg: colors.accent.orange.bg, color: colors.accent.orange.icon, Icon: TrendUpIcon },
-  chart: { bg: colors.accent.green.bg, color: colors.accent.green.icon, Icon: TrendUpIcon },
-  phone: { bg: colors.accent.blue.bg, color: colors.accent.blue.icon, Icon: ShieldIcon },
-  balance: { bg: colors.accent.purple.bg, color: colors.accent.purple.icon, Icon: TargetIcon },
+const INCOME_TONE = {
+  fg: colors.primary.DEFAULT,
+  bg: `linear-gradient(145deg, ${colors.primary.bg}, oklch(94% 0.05 264))`,
+  ring: 'oklch(47.5% 0.19 264 / 0.15)',
 }
 
 export function ClientProfile({ profile }: { profile: ProfileData }) {
   return (
-    <div
-      className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 h-full flex flex-col card-shadow animate-fade-in-up w-full"
-      style={{ border: `1px solid ${colors.border}` }}
-    >
-      <div className="flex flex-col items-center text-center">
-        <div
-          className="w-20 h-20 sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden mb-3 ring-4 ring-white shadow-md"
-          style={{ background: profile.avatarBg }}
-        >
+    <article className="profile-detail surface-panel rounded-[1.25rem] h-full flex flex-col animate-fade-in-up w-full overflow-hidden">
+      <div
+        className="profile-detail__hero px-4 sm:px-5 pt-5 sm:pt-6 pb-4 text-center"
+        style={{ background: profile.avatarBg }}
+      >
+        <div className="profile-detail__avatar mx-auto">
           <img
             src={profile.avatar}
             alt={profile.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
+            loading="lazy"
+            decoding="async"
           />
         </div>
-        <h2 className="text-lg sm:text-xl font-bold tracking-tight" style={{ color: colors.text.primary }}>
+        <h2 className="text-xl sm:text-[1.35rem] font-bold tracking-tight mt-3" style={{ color: colors.text.primary }}>
           {profile.name}
         </h2>
-        <div
-          className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full mt-1.5"
-          style={{ background: colors.primary.bg, color: colors.primary.DEFAULT }}
-        >
-          {profile.info}
-        </div>
-        <div className="text-sm mt-1.5" style={{ color: colors.text.secondary }}>
-          {profile.age} лет
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+          <span className="profile-detail__role">{profile.info}</span>
+          <span className="profile-detail__age">{profile.age} лет</span>
         </div>
       </div>
 
-      <div className="w-full h-px my-4 sm:my-5" style={{ background: colors.border }} />
-
-      <div
-        className="flex items-center gap-3 rounded-xl px-3.5 sm:px-4 py-3 mb-4 w-full"
-        style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
-      >
-        <div
-          className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: colors.primary.bg, color: colors.primary.DEFAULT }}
-        >
-          <WalletIcon size={16} />
-        </div>
-        <div className="text-left min-w-0 flex-1">
-          <div className="text-xs" style={{ color: colors.text.muted }}>Ежемесячный доход</div>
-          <div className="text-sm sm:text-[15px] font-semibold break-words" style={{ color: colors.text.primary }}>
-            {formatRubles(profile.monthlyIncome)}
+      <div className="flex flex-col p-4 sm:p-5 lg:p-6 pt-4">
+        <div className="profile-detail__income mb-4">
+          <GlyphBadge variant="income" tone={INCOME_TONE}>
+            <GlyphWallet size={20} className="glyph-badge__icon" />
+          </GlyphBadge>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: colors.text.muted }}>
+              Ежемесячный доход
+            </div>
+            <div className="text-lg sm:text-xl font-bold tracking-tight tabular-nums mt-0.5" style={{ color: colors.text.primary }}>
+              {formatRubles(profile.monthlyIncome)}
+            </div>
           </div>
         </div>
-      </div>
 
-      <p className="text-sm leading-relaxed mb-4 sm:mb-5 text-left" style={{ color: colors.text.secondary }}>
-        {profile.description}
-      </p>
+        <p className="text-sm leading-relaxed mb-5 text-left" style={{ color: colors.text.secondary }}>
+          {profile.description}
+        </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 mt-auto">
-        {profile.characteristics.map((ch) => {
-          const cfg = CHAR_CONFIG[ch.icon]
-          const { Icon } = cfg
-          return (
-            <div
-              key={ch.label}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-3 min-h-[52px]"
-              style={{ border: `1px solid ${colors.border}`, background: colors.surface }}
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: cfg.bg, color: cfg.color }}
-              >
-                <Icon size={15} />
-              </div>
-              <span className="text-xs font-medium leading-tight" style={{ color: colors.text.primary }}>
-                {ch.label}
-              </span>
-            </div>
-          )
-        })}
+        <p className="section-label mb-3">Портрет клиента</p>
+        <ul className="profile-detail__traits">
+          {profile.characteristics.map((ch) => {
+            const { Glyph, tone } = getTraitGlyph(ch.icon)
+            return (
+              <li key={ch.label} className="profile-detail__trait">
+                <GlyphBadge variant="trait" tone={tone}>
+                  <Glyph size={18} className="glyph-badge__icon" />
+                </GlyphBadge>
+                <span className="profile-detail__trait-label">{ch.label}</span>
+              </li>
+            )
+          })}
+        </ul>
       </div>
-    </div>
+    </article>
   )
 }

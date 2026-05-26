@@ -15,14 +15,20 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+  const base =
+    'inline-flex items-center justify-center rounded-xl font-semibold transition-[background-color,box-shadow,transform,color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]'
 
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500',
-    outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-    ghost: 'text-gray-600 hover:bg-gray-100 focus:ring-gray-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    primary:
+      'bg-[var(--color-sdm-primary)] text-[var(--color-sdm-text-white)] hover:bg-[var(--color-sdm-primary-dark)] focus-visible:outline-[var(--color-sdm-primary)] shadow-[0_2px_8px_oklch(47.5%_0.19_264/0.25)]',
+    secondary:
+      'bg-[var(--color-sdm-primary-bg)] text-[var(--color-sdm-text)] hover:bg-[var(--color-sdm-primary-bg-soft)] focus-visible:outline-[var(--color-sdm-primary)]',
+    outline:
+      'border border-[var(--color-sdm-border)] text-[var(--color-sdm-text)] bg-[var(--color-sdm-surface)] hover:bg-[var(--color-sdm-bg)] focus-visible:outline-[var(--color-sdm-primary)]',
+    ghost:
+      'text-[var(--color-sdm-text-secondary)] hover:bg-[var(--color-sdm-primary-bg-soft)] focus-visible:outline-[var(--color-sdm-primary)]',
+    danger:
+      'bg-[oklch(52%_0.18_25)] text-[var(--color-sdm-text-white)] hover:bg-[oklch(45%_0.16_25)] focus-visible:outline-[oklch(52%_0.18_25)]',
   }
 
   const sizes = {

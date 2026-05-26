@@ -197,5 +197,25 @@ export function getTopK(scores: Float32Array, k = 3): number[] {
     .map((s, i) => ({ s, i }))
     .sort((a, b) => b.s - a.s)
     .slice(0, k)
-    .map(x => x.i)
+    .map((x) => x.i)
+}
+
+/** Top model indices mapped to unique product IDs (skips unknown indices and duplicates). */
+export function getTopKUniqueProductIds(scores: Float32Array, k = 5): string[] {
+  const sorted = Array.from(scores)
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => b.s - a.s)
+
+  const seen = new Set<string>()
+  const ids: string[] = []
+
+  for (const { i } of sorted) {
+    const id = getProductId(i)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+    if (ids.length >= k) break
+  }
+
+  return ids
 }

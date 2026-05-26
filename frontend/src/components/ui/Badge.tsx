@@ -7,16 +7,22 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: 'bg-gray-100 text-gray-800',
-  success: 'bg-green-100 text-green-800',
-  warning: 'bg-yellow-100 text-yellow-800',
-  danger: 'bg-red-100 text-red-800',
-  info: 'bg-blue-100 text-blue-800',
+  default: 'bg-[var(--color-sdm-primary-bg)] text-[var(--color-sdm-text)]',
+  success: 'bg-[oklch(96.5%_0.04_155)] text-[oklch(38%_0.1_160)]',
+  warning: 'bg-[oklch(96.5%_0.06_95)] text-[oklch(42%_0.12_85)]',
+  danger: 'bg-[oklch(96%_0.04_25)] text-[oklch(42%_0.14_25)]',
+  info: 'bg-[var(--color-sdm-primary-bg)] text-[var(--color-sdm-primary)]',
 }
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
-    <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', variants[variant], className)}>
+    <span
+      className={cn(
+        'inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold tracking-wide',
+        variants[variant],
+        className
+      )}
+    >
       {children}
     </span>
   )

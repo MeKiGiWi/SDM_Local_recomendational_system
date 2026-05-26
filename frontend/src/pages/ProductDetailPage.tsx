@@ -37,10 +37,10 @@ export function ProductDetailPage() {
       <div className="page-container py-5 sm:py-8 max-w-3xl w-full">
         <Link
           to="/"
-          className="text-sm font-medium mb-4 inline-block"
+          className="text-sm font-semibold mb-5 inline-flex items-center gap-1 transition-opacity duration-200 hover:opacity-80"
           style={{ color: colors.primary.DEFAULT }}
         >
-          ← На главную
+          <span aria-hidden>←</span> На главную
         </Link>
 
         <Card className="mb-4 sm:mb-6">
@@ -53,7 +53,10 @@ export function ProductDetailPage() {
             </div>
           </CardHeader>
           <CardBody>
-            <div className="relative rounded-lg overflow-hidden mb-4 bg-gradient-to-br from-gray-100 to-gray-200 h-40 sm:h-48">
+            <div
+              className="relative rounded-xl overflow-hidden mb-4 h-40 sm:h-48"
+              style={{ background: `linear-gradient(145deg, ${colors.primary.bg}, ${colors.bg})` }}
+            >
               <img
                 src={product.image}
                 alt={product.name}
