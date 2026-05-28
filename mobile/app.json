@@ -9,6 +9,10 @@
     "ios": {
       "supportsTablet": true
     },
+    "plugins": [
+      "./plugins/withCatBoostAndroid",
+      "sdm-catboost"
+    ],
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

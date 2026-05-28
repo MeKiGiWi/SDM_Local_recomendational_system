@@ -24,7 +24,7 @@ const expoGo = args.has('--expo-go')
 const serverOnly = args.has('--server-only')
 const noInstall = args.has('--no-install')
 
-const MODEL_REQUIRED = ['catboost_mobile.json', 'feature_order.json']
+const MODEL_REQUIRED = ['catboost_pointwise.cbm', 'catboost_model.json', 'feature_order.json']
 
 function log(msg) {
   console.log(`\n▶ ${msg}`)

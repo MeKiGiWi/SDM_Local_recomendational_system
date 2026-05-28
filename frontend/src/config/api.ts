@@ -8,6 +8,7 @@ export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   TIMEOUT: 10000,
   USE_MOCK: envFlag('VITE_USE_MOCK', false),
+  /** Web: true = CatBoost on backend API; false = ads mock/API only */
   USE_LOCAL_MODEL: envFlag('VITE_USE_LOCAL_MODEL', true),
   RETRY_COUNT: 3,
 }

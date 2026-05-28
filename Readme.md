@@ -11,7 +11,7 @@
 │  (Python)   │               │  pointwise   │
 │             │               └──────┬───────┘
 │ Santander   │                      │
-│ Bank Churn  │               export │ catboost_mobile.json
+│ Bank Churn  │               export │ catboost_pointwise.cbm
 │ Credit Card │                      │
 │ UCI Market  │                      ▼
 └─────────────┘     копия     ┌──────────────┐
@@ -26,7 +26,8 @@
                              │  Телефон     │
                              │  (Android)   │
                              │              │
-                             │  JS surrogate│
+                             │  CatBoost    │
+                             │  .cbm native │
                              │  (offline)   │
                              │              │
                              │  + персона-  │
@@ -45,12 +46,11 @@ SDM/
 │   │   │   ├── ad-products.json   # ⭐ Все продукты + реклама (один файл!)
 │   │   │   └── productParser.ts   # Парсер JSON → React
 │   │   ├── services/              # Клиентский ML-инференс
-│   │   │   ├── modelInference.ts  # CatBoost surrogate (offline)
-│   │   │   └── modelLoader.ts     # ONNX-runtime загрузчик
+│   │   │   └── modelInference.ts  # Native CatBoost .cbm (Android)
 │   │   ├── components/            # UI компоненты
 │   │   ├── pages/                 # Страницы
 │   │   └── store/                 # Zustand
-│   └── public/model/              # catboost_mobile.json (офлайн на телефоне)
+│   └── public/model/              # catboost_pointwise.cbm (копия для web metadata)
 │
 ├── backend/                       # ML-пайплайн (Python)
 │   ├── models/export/             # catboost_pointwise_holdout.pkl
@@ -84,6 +84,13 @@ npm run dev -- --host
 
 **Датасет:** `backend/datasets/raw/train_wide_with_lags.csv`  
 **Подготовка данных (ноутбуки на main):** `datasets/00_clean_dataset.ipynb`, `01_generate_income_from_cleaned.ipynb` — если CSV уже готов, пропустите.
+
+**Демо-профили (квантили 0.05 / 0.25 / 0.5 / 0.8 из train_long):**
+```bash
+python backend/scripts/build_train_long.py
+python backend/scripts/profiles_from_train_long_quantiles.py --apply
+```
+Артефакт: `backend/datasets/processed/profile_quantiles.json`
 
 **Colab (обучение):** [ноутбук pointwise](https://colab.research.google.com/drive/18Egarg7p1_BW2NujhQFGHbwUW6U1XI4y) → сохраните `.pkl` в `backend/models/export/catboost_pointwise_holdout.pkl`
 
@@ -129,7 +136,8 @@ print(r.rank_products(ctx, top_k=5))
 ## CatBoost pointwise
 
 - **Сервер:** `catboost_pointwise_holdout.pkl` — полный инференс
-- **Телефон:** `catboost_mobile.json` — компактный surrogate (~6 KB), офлайн в APK
+- **Телефон (Android):** `catboost_pointwise.cbm` (~3.5 MB) — **тот же CatBoost**, нативный applier (`ai.catboost:catboost-prediction`), офлайн в APK. Без logistic surrogate.
+- **Браузер:** рекомендации через API → серверный `.pkl` (тот же CatBoost).
 
 ## Телефон (Expo + сервер на ПК)
 

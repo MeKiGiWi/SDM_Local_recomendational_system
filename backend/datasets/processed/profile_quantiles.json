@@ -1,0 +1,58 @@
+[
+  {
+    "quantile": 0.05,
+    "age": 21,
+    "monthlyIncome": 45943,
+    "balance": 45718,
+    "seniorityMonths": 6,
+    "isNewCustomer": 0,
+    "sex": 1,
+    "segment": "STUDENTS",
+    "regionName": "MADRID",
+    "name": "Матвей",
+    "accountType": "card",
+    "currency": "RUB"
+  },
+  {
+    "quantile": 0.25,
+    "age": 29,
+    "monthlyIncome": 74997,
+    "balance": 75173,
+    "seniorityMonths": 23,
+    "isNewCustomer": 0,
+    "sex": 1,
+    "segment": "INDIVIDUALS",
+    "regionName": "MADRID",
+    "name": "Артем",
+    "accountType": "current",
+    "currency": "RUB"
+  },
+  {
+    "quantile": 0.5,
+    "age": 42,
+    "monthlyIncome": 100602,
+    "balance": 101713,
+    "seniorityMonths": 62,
+    "isNewCustomer": 0,
+    "sex": 1,
+    "segment": "INDIVIDUALS",
+    "regionName": "MADRID",
+    "name": "Даня",
+    "accountType": "savings",
+    "currency": "RUB"
+  },
+  {
+    "quantile": 0.8,
+    "age": 55,
+    "monthlyIncome": 161283,
+    "balance": 163881,
+    "seniorityMonths": 170,
+    "isNewCustomer": 0,
+    "sex": 1,
+    "segment": "INDIVIDUALS",
+    "regionName": "MADRID",
+    "name": "Михаил",
+    "accountType": "deposit",
+    "currency": "RUB"
+  }
+]

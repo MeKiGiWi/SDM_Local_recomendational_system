@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["ru.mai.sdm.catboost.SdmCatboostModule"]
+  }
+}

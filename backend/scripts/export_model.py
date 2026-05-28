@@ -3,7 +3,7 @@
 
   python backend/scripts/export_model.py
 
-Делегирует в export_catboost_mobile.py (CatBoost surrogate + feature_order).
+Делегирует в export_catboost_mobile.py (CatBoost .cbm + metadata для native inference).
 """
 
 from __future__ import annotations

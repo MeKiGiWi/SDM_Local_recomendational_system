@@ -1,3 +1,7 @@
+/**
+ * Демо-профили: квантили дохода 0.05 / 0.25 / 0.5 / 0.8 по train_wide_with_lags.
+ * Пересчитать: python backend/scripts/profiles_from_train_long_quantiles.py --apply
+ */
 import { PORTRAITS } from './portraits'
 import type { AccountType, Currency } from '../store/userInputStore'
 import { colors } from './theme'
@@ -20,14 +24,14 @@ export interface ProfileData extends ModelProfileFields {
 export const PROFILES: ProfileData[] = [
   {
     name: 'Матвей',
-    age: 20,
-    balance: 15000,
-    monthlyIncome: 15000,
+    age: 21,
+    balance: 45718,
+    monthlyIncome: 45943,
     accountType: 'card',
     currency: 'RUB',
     sex: 1,
     seniorityMonths: 6,
-    isNewCustomer: 1,
+    isNewCustomer: 0,
     segment: 'STUDENTS',
     regionName: 'MADRID',
     info: 'Студент',
@@ -43,13 +47,13 @@ export const PROFILES: ProfileData[] = [
   },
   {
     name: 'Артем',
-    age: 35,
-    balance: 350000,
-    monthlyIncome: 120000,
+    age: 29,
+    balance: 75173,
+    monthlyIncome: 74997,
     accountType: 'current',
     currency: 'RUB',
     sex: 1,
-    seniorityMonths: 72,
+    seniorityMonths: 23,
     isNewCustomer: 0,
     segment: 'INDIVIDUALS',
     regionName: 'MADRID',
@@ -66,16 +70,16 @@ export const PROFILES: ProfileData[] = [
   },
   {
     name: 'Даня',
-    age: 28,
-    balance: 1500000,
-    monthlyIncome: 350000,
+    age: 42,
+    balance: 101713,
+    monthlyIncome: 100602,
     accountType: 'savings',
     currency: 'RUB',
     sex: 1,
-    seniorityMonths: 48,
+    seniorityMonths: 62,
     isNewCustomer: 0,
-    segment: 'VIP',
-    regionName: 'BARCELONA',
+    segment: 'INDIVIDUALS',
+    regionName: 'MADRID',
     info: 'Предприниматель',
     avatar: PORTRAITS.danya,
     avatarBg: ['#fff4e6', '#fce8d4'],
@@ -90,15 +94,15 @@ export const PROFILES: ProfileData[] = [
   {
     name: 'Михаил',
     age: 55,
-    balance: 5000000,
-    monthlyIncome: 5000000,
+    balance: 163881,
+    monthlyIncome: 161283,
     accountType: 'deposit',
     currency: 'RUB',
     sex: 1,
-    seniorityMonths: 180,
+    seniorityMonths: 170,
     isNewCustomer: 0,
-    segment: 'VIP',
-    regionName: 'VALENCIA',
+    segment: 'INDIVIDUALS',
+    regionName: 'MADRID',
     info: 'Топ-менеджер',
     avatar: PORTRAITS.mikhail,
     avatarBg: ['#e8f8ef', '#d4efe0'],

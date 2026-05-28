@@ -1,119 +1,68 @@
-import catboostMobile from '../../assets/model/catboost_mobile.json'
+import { Asset } from 'expo-asset'
+import { Platform } from 'react-native'
+import {
+  isCatboostNativeAvailable,
+  loadCatboostModel,
+  predictCatboost,
+} from 'sdm-catboost'
+import modelMeta from '../../assets/model/catboost_model.json'
+import cbmModule from '../../assets/model/catboost_pointwise.cbm'
 import featureOrder from '../../assets/model/feature_order.json'
+import {
+  buildPointwiseRows,
+  type ModelMeta,
+  type Segment,
+  type UserFeatures,
+} from './pointwiseFeatures'
 
-export type Segment = 'INDIVIDUALS' | 'VIP' | 'STUDENTS'
+export type { Segment, UserFeatures }
 
-export interface UserFeatures {
-  age: number
-  balance: number
-  monthlyIncome: number
-  accountType: number
-  currency: number
-  clicks: Record<string, number>
-  seniorityMonths?: number
-  isNewCustomer?: number
-  sex?: number
-  segment?: Segment
-  segmentVip?: number
-  segmentStudent?: number
-  regionName?: string
-}
-
-interface SurrogateMeta {
-  coef: number[]
-  intercept: number
-  products: string[]
-  numeric_layout: {
-    synthetic: string[]
-    own_products: string[]
-    product_one_hot: string[]
-  }
-}
-
-interface MobileBundle {
-  products: string[]
-  surrogate: SurrogateMeta
-}
-
-const bundle = catboostMobile as unknown as MobileBundle
+const meta = modelMeta as ModelMeta
 const productNames: string[] =
-  bundle.products ?? (featureOrder as { product_names?: string[] }).product_names ?? []
+  meta.products ?? (featureOrder as { product_names?: string[] }).product_names ?? []
+
 let initialized = false
+let initError: string | null = null
 
 export function isModelLoaded(): boolean {
-  return initialized && Boolean(bundle?.surrogate?.coef?.length)
+  return initialized
 }
 
 export const isBitNetLoaded = isModelLoaded
 
-export async function initModel(): Promise<boolean> {
-  if (initialized) return isModelLoaded()
-  initialized = true
-  console.info('[CatBoost] Loaded mobile surrogate', productNames.length, 'products')
-  return isModelLoaded()
+export function getModelInitError(): string | null {
+  return initError
 }
 
-export const initBitNet = initModel
+export async function initModel(): Promise<boolean> {
+  if (initialized) return true
+  if (Platform.OS !== 'android') {
+    initError = 'CatBoost native inference is Android-only (use API on iOS/web).'
+    return false
+  }
+  if (!isCatboostNativeAvailable()) {
+    initError = 'Native module SdmCatboost missing — run: npx expo prebuild --platform android'
+    return false
+  }
 
-function syntheticFromProfile(age: number, income: number, balance: number, segment: string): Record<string, number> {
-  const segMul = segment === 'VIP' ? 1.4 : segment === 'STUDENTS' ? 0.65 : 1
-  const ageMul = age < 25 ? 0.85 : age > 50 ? 1.1 : 1
-  const turnover = Math.max(income, 1) * 1.15 * ageMul + balance * 0.02
-  const ops = Math.min(80, Math.max(2, (turnover / 8000) * segMul))
-  const activeDays = Math.min(28, Math.max(2, ops * 0.55))
-  const expenses = turnover * 0.62
-  return {
-    synthetic_activity_score: Math.min(2.5, Math.max(0.05, (Math.log1p(turnover) / 12) * segMul)),
-    synthetic_operations_cnt_30d: ops,
-    synthetic_active_days_30d: activeDays,
-    synthetic_expenses_30d: expenses,
-    synthetic_income_30d: Math.max(income, 1),
-    synthetic_turnover_30d: turnover,
-    synthetic_avg_operation_size_30d: turnover / Math.max(ops, 1),
-    synthetic_financial_intensity: Math.min(3, turnover / (balance + income + 1)),
-    synthetic_inflow_outflow_ratio: Math.min(2.5, Math.max(0.3, income / (expenses + 1))),
-    synthetic_credit_pressure: Math.min(1.5, expenses / (balance + income + 1)),
-    synthetic_savings_capacity: Math.min(2, (balance + income - expenses) / (income + 1)),
-    synthetic_credit_capacity: Math.min(2, Math.max(0, (income * 3 - expenses) / (income * 3 + 1))),
-    synthetic_business_intensity: segment === 'VIP' && balance > 500_000 ? 0.35 : 0.08,
+  try {
+    const asset = Asset.fromModule(cbmModule)
+    await asset.downloadAsync()
+    const uri = asset.localUri ?? asset.uri
+    if (!uri) throw new Error('CBM asset URI missing')
+    await loadCatboostModel(uri)
+    initialized = true
+    initError = null
+    console.info('[CatBoost] Loaded native CBM', productNames.length, 'products')
+    return true
+  } catch (e) {
+    initError = e instanceof Error ? e.message : String(e)
+    console.error('[CatBoost] init failed:', initError)
+    return false
   }
 }
 
-function segmentFromFeatures(f: UserFeatures): string {
-  if (f.segment) return f.segment
-  if (f.segmentStudent) return 'STUDENTS'
-  if (f.segmentVip) return 'VIP'
-  if (f.accountType === 3) return 'STUDENTS'
-  if (f.balance >= 1_000_000 || f.monthlyIncome >= 500_000) return 'VIP'
-  return 'INDIVIDUALS'
-}
-
-function buildVector(f: UserFeatures, product: string): number[] {
-  const layout = bundle.surrogate.numeric_layout
-  const segment = segmentFromFeatures(f)
-  const syn = syntheticFromProfile(f.age, f.monthlyIncome, f.balance, segment)
-  const vec: number[] = [
-    f.age,
-    f.seniorityMonths ?? 24,
-    f.monthlyIncome,
-    f.isNewCustomer ?? 0,
-  ]
-  for (const key of layout.synthetic) vec.push(syn[key] ?? 0)
-  for (const pid of layout.own_products) vec.push((f.clicks[pid] ?? 0) > 0 ? 1 : 0)
-  vec.push((f.sex ?? 1) === 1 ? 1 : 0)
-  vec.push(segment === 'VIP' ? 1 : 0)
-  vec.push(segment === 'STUDENTS' ? 1 : 0)
-  for (const pid of layout.product_one_hot) vec.push(pid === product ? 1 : 0)
-  return vec
-}
-
-function scoreProduct(f: UserFeatures, product: string): number {
-  const { coef, intercept } = bundle.surrogate
-  const vec = buildVector(f, product)
-  let dot = intercept
-  for (let i = 0; i < coef.length && i < vec.length; i++) dot += coef[i] * vec[i]
-  return 1 / (1 + Math.exp(-dot))
-}
+export const initBitNet = initModel
 
 export function getProductIndex(productId: string): number {
   return productNames.indexOf(productId)
@@ -124,10 +73,32 @@ export function getProductId(modelIndex: number): string | null {
 }
 
 export function predict(f: UserFeatures): Float32Array {
-  const products = productNames
-  const scores = new Float32Array(products.length)
-  for (let i = 0; i < products.length; i++) scores[i] = scoreProduct(f, products[i])
+  if (!initialized) {
+    throw new Error(initError ?? 'CatBoost model not loaded')
+  }
+  throw new Error('Use predictAsync() for native CatBoost inference')
+}
+
+export async function predictAsync(f: UserFeatures): Promise<Float32Array> {
+  if (!initialized) {
+    const ok = await initModel()
+    if (!ok) throw new Error(initError ?? 'CatBoost model not loaded')
+  }
+
+  const rows = buildPointwiseRows(f, meta)
+  const probs = await predictCatboost(rows)
+  const scores = new Float32Array(productNames.length)
+  for (let i = 0; i < productNames.length; i++) {
+    const idx = meta.products.indexOf(productNames[i])
+    scores[i] = idx >= 0 ? probs[idx] : 0
+  }
   return scores
+}
+
+/** Sync wrapper for legacy callers — runs native path via cached scores not supported; use predictAsync. */
+export function predictSync(f: UserFeatures): Float32Array {
+  void f
+  throw new Error('predictSync removed — use predictAsync with native CatBoost')
 }
 
 export function personalize(scores: Float32Array, clicks: Record<string, number>): Float32Array {

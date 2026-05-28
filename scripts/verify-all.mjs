@@ -23,8 +23,9 @@ function run(label, cmd, args, opts = {}) {
   console.log(`✓ ${label}`)
 }
 
-// 1. Model bundle
+// 1. Model bundle + no stubs
 run('Model bundle', process.execPath, [join(root, 'scripts', 'verify-model.mjs')])
+run('No stub audit', process.execPath, [join(root, 'scripts', 'audit-no-stubs.mjs')])
 
 // 2. Python inference
 if (!existsSync(python)) {
@@ -49,13 +50,12 @@ run('CatBoost pkl + JSON', python, [join(root, 'backend', 'scripts', 'verify_inf
   console.log('✓ Mobile TypeScript')
 }
 
-// 5. Surrogate sanity (parse JSON, check dimensions)
-const mobile = JSON.parse(readFileSync(join(root, 'frontend', 'public', 'model', 'catboost_mobile.json'), 'utf8'))
-const { coef, intercept, products } = mobile.surrogate
-if (!coef?.length || products.length < 10) {
-  console.error('✖ Invalid catboost_mobile.json surrogate')
+// 5. CBM bundle metadata
+const meta = JSON.parse(readFileSync(join(root, 'mobile', 'assets', 'model', 'catboost_model.json'), 'utf8'))
+if (meta.inference !== 'catboost_cbm_native' || !meta.products?.length) {
+  console.error('✖ Invalid catboost_model.json')
   process.exit(1)
 }
-console.log(`\n✓ Surrogate: ${products.length} products, ${coef.length} coef, intercept=${intercept}`)
+console.log(`\n✓ Native CBM bundle: ${meta.products.length} products`)
 
 console.log('\n=== ALL CHECKS PASSED ===\n')

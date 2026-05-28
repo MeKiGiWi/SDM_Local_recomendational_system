@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end smoke test: CatBoost pkl + mobile JSON surrogate logic."""
+"""Smoke test: CatBoost pkl + exported .cbm metadata."""
 
 from __future__ import annotations
 
@@ -13,7 +13,8 @@ sys.path.insert(0, str(BACKEND))
 
 from src.models.catboost_pointwise import UserContext, get_recommender  # noqa: E402
 
-MOBILE_JSON = ROOT / "frontend" / "public" / "model" / "catboost_mobile.json"
+META = ROOT / "mobile" / "assets" / "model" / "catboost_model.json"
+CBM = ROOT / "mobile" / "assets" / "model" / "catboost_pointwise.cbm"
 PKL = BACKEND / "models" / "export" / "catboost_pointwise_holdout.pkl"
 
 
@@ -24,21 +25,21 @@ def test_pkl() -> None:
     ranked = rec.rank_products(ctx, top_k=5)
     assert len(ranked) >= 1, "empty ranking"
     assert all(0 <= s <= 1 for _, s in ranked), "scores out of range"
-    print("pkl:", [p for p, _ in ranked[:3]])
+    print("pkl top3:", [p for p, _ in ranked[:3]])
 
 
-def test_mobile_json() -> None:
-    assert MOBILE_JSON.exists(), f"missing {MOBILE_JSON}"
-    data = json.loads(MOBILE_JSON.read_text(encoding="utf-8"))
-    sur = data["surrogate"]
-    assert sur["coef"], "empty coef"
-    assert sur["products"], "empty products"
-    print("mobile json: ok,", len(sur["products"]), "products")
+def test_cbm_bundle() -> None:
+    assert CBM.exists(), f"missing {CBM}"
+    assert META.exists(), f"missing {META}"
+    meta = json.loads(META.read_text(encoding="utf-8"))
+    assert meta["inference"] == "catboost_cbm_native"
+    assert len(meta["products"]) == 22
+    print("cbm:", round(CBM.stat().st_size / 1e6, 2), "MB,", len(meta["products"]), "products")
 
 
 def main() -> None:
     test_pkl()
-    test_mobile_json()
+    test_cbm_bundle()
     print("ALL OK")
 
 

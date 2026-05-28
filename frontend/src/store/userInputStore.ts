@@ -1,19 +1,11 @@
 import { create } from 'zustand'
 import type { AdSelectionResponse } from '../types'
 import { adsApi, analyticsApi } from '../api/endpoints'
-import { API_CONFIG } from '../config/api'
 import { ANALYTICS } from '../config/features'
 import { generateSessionId } from '../utils/session'
 import { getItem, setItem } from '../utils/storage'
-import {
-  predict,
-  initModel,
-  personalize,
-  getTopK,
-  getProductId,
-} from '../services/modelInference'
-import { profileToUserFeatures, type Segment } from '../utils/profileToModel'
-import { getAllProducts } from '../data/productParser'
+import { initModel } from '../services/modelInference'
+import type { Segment } from '../utils/profileToModel'
 
 export type Currency = 'RUB' | 'USD' | 'EUR' | 'CNY'
 export type AccountType = 'savings' | 'current' | 'deposit' | 'card'
@@ -59,14 +51,6 @@ const DEFAULTS: UserProfile = {
   segment: 'INDIVIDUALS',
   regionName: 'MADRID',
 }
-
-const REASONS = [
-  'AI: оптимально под ваш профиль',
-  'AI: на основе вашего баланса',
-  'AI: популярно в вашей возрастной группе',
-  'AI: подходит под ваш тип счёта',
-  'AI: рекомендовано по доходу',
-]
 
 const STORAGE_KEY = 'sdm_user_profile'
 const CLICK_KEY = 'sdm_click_history'
@@ -146,59 +130,23 @@ export const useUserInputStore = create<UserInputState>((set, get) => ({
     try {
       let adResponse: AdSelectionResponse
 
-      if (API_CONFIG.USE_LOCAL_MODEL) {
-        await initModel()
-
-        const userFeatures = profileToUserFeatures(
-          {
-            age,
-            balance,
-            monthlyIncome,
-            accountType,
-            currency,
-            sex: state.sex,
-            seniorityMonths: state.seniorityMonths,
-            isNewCustomer: state.isNewCustomer,
-            segment: state.segment,
-            regionName: state.regionName,
-          },
-          clickHistory,
-        )
-
-        const scores = predict(userFeatures)
-        const personalized = personalize(scores, clickHistory)
-        const topIdx = getTopK(personalized, 1)[0]
-
-        const allProducts = getAllProducts()
-        const prodId = getProductId(topIdx)
-        const product = allProducts.find((p) => p.id === prodId) ?? allProducts[0]
-
-        adResponse = {
-          adId: product.id,
-          title: product.name,
-          subtitle: product.description.slice(0, 80) + '...',
-          link: `/product/${product.id}`,
-          reason: REASONS[topIdx % REASONS.length],
-          confidence: 0.7 + Math.random() * 0.2,
-        }
-      } else {
-        const response = await adsApi.select({
-          age,
-          balance,
-          monthlyIncome,
-          sessionId,
-          sex: state.sex,
-          seniorityMonths: state.seniorityMonths,
-          isNewCustomer: state.isNewCustomer,
-          segment: state.segment,
-          regionName: state.regionName,
-          accountType,
-          currency,
-          clickHistory,
-        })
-        if (response.error) throw new Error(response.error)
-        adResponse = response.data
-      }
+      await initModel()
+      const response = await adsApi.select({
+        age,
+        balance,
+        monthlyIncome,
+        sessionId,
+        sex: state.sex,
+        seniorityMonths: state.seniorityMonths,
+        isNewCustomer: state.isNewCustomer,
+        segment: state.segment,
+        regionName: state.regionName,
+        accountType,
+        currency,
+        clickHistory,
+      })
+      if (response.error) throw new Error(response.error)
+      adResponse = response.data
 
       set((state) => ({
         selectedAd: adResponse,

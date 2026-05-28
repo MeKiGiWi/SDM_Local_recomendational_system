@@ -1,20 +1,19 @@
 {
-  "inference": "catboost_logistic_surrogate",
+  "inference": "catboost_cbm_native",
   "targets": {
     "web": "frontend/public/model",
     "expo_bundle": "mobile/assets/model"
   },
   "files": {
-    "catboost_mobile.json": {
-      "bytes": 5647,
-      "sha256_16": "107df934a5a36bd7",
+    "catboost_pointwise.cbm": {
+      "bytes": 3519512,
+      "sha256_16": "8c718c0345ec4744",
       "required": true
     },
-    "feature_order.json": {
-      "bytes": 540,
-      "sha256_16": "d39abd87eea9ac60",
+    "catboost_model.json": {
+      "bytes": 2615,
       "required": true
     }
   },
-  "train_hint": "Colab notebook → pkl; then: python backend/scripts/export_catboost_mobile.py"
+  "train_hint": "python backend/scripts/train_catboost_pointwise.py && python backend/scripts/export_catboost_mobile.py"
 }

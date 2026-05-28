@@ -9,8 +9,9 @@ import {
 import {
   initModel,
   personalize,
-  predict,
+  predictAsync,
   getTopKUniqueProductIds,
+  getModelInitError,
 } from '../services/modelInference'
 import { profileToUserFeatures, type ProfileForModel } from '../utils/profileToModel'
 import { getItem, setItem } from '../utils/storage'
@@ -86,10 +87,14 @@ export const useUserInputStore = create<UserInputState>((set, get) => ({
 
 export async function fetchRecommendationsForProfile(profile: ProfileForModel): Promise<AdProduct[]> {
   const clickHistory = useUserInputStore.getState().clickHistory
-  await initModel()
+  const ok = await initModel()
+  if (!ok) {
+    console.error('[CatBoost]', getModelInitError())
+    return getAllProducts().slice(0, 5)
+  }
 
   const userFeatures = profileToUserFeatures(profile, clickHistory)
-  const scores = predict(userFeatures)
+  const scores = await predictAsync(userFeatures)
   const personalized = personalize(scores, clickHistory)
   const topIds = getTopKUniqueProductIds(personalized, 5)
   const resolved = topIds

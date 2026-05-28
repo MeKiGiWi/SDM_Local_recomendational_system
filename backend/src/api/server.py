@@ -138,7 +138,7 @@ def _pick_ad(age: int, balance: float) -> tuple[int, str]:
 
 
 MODEL_DIR = ROOT / "frontend" / "public" / "model"
-REQUIRED_MODEL_FILES = ("catboost_mobile.json", "feature_order.json")
+REQUIRED_MODEL_FILES = ("catboost_pointwise.cbm", "catboost_model.json", "feature_order.json")
 CATBOOST_PKL = BACKEND / "models" / "export" / "catboost_pointwise_holdout.pkl"
 
 
@@ -168,7 +168,7 @@ def model_health() -> dict[str, Any]:
     pkl_ok = CATBOOST_PKL.exists()
     return {
         "status": "ok" if not missing and pkl_ok else "incomplete",
-        "inference_on_phone": "catboost_logistic_surrogate (bundled in APK, offline)",
+        "inference_on_phone": "catboost_pointwise.cbm (native CatBoost, offline Android)",
         "inference_on_server": "catboost_pointwise.pkl",
         "catboost_pkl": {"path": str(CATBOOST_PKL.relative_to(ROOT)).replace("\\", "/"), "ok": pkl_ok},
         "model_dir": str(MODEL_DIR.relative_to(ROOT)).replace("\\", "/"),

@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { AdProduct } from '../../../data/productParser'
-import { initModel, personalize, predict, getTopKUniqueProductIds } from '../../../services/modelInference'
-import { profileToUserFeatures } from '../../../utils/profileToModel'
+import { fetchCatboostRecommendations } from '../../../services/catboostApi'
 import { getAllProducts, getHomeAdProducts, getProductById } from '../../../data/productParser'
 import { colors } from '../../../config/theme'
 import { CategoryGlyph } from '../../ui/CategoryIcon'
@@ -99,22 +98,39 @@ function SecondaryRecCard({ product, rank, onTrack }: { product: AdProduct; rank
 
 function useRecommendations(profile: ProfileData | null, mode: 'profile' | 'popular'): AdProduct[] {
   const clickHistory = useUserInputStore((s) => s.clickHistory)
-  return useMemo(() => {
-    if (mode === 'popular') {
-      return uniqueProducts(getHomeAdProducts(), 5)
-    }
-    if (!profile) return []
+  const [items, setItems] = useState<AdProduct[]>([])
 
-    void initModel()
-    const userFeatures = profileToUserFeatures(profile, clickHistory)
-    const scores = predict(userFeatures)
-    const personalized = personalize(scores, clickHistory)
-    const topIds = getTopKUniqueProductIds(personalized, 5)
-    const resolved = topIds
-      .map((id) => getProductById(id))
-      .filter((p): p is AdProduct => p != null)
-    return uniqueProducts(resolved.length > 0 ? resolved : getAllProducts().slice(0, 5), 5)
+  useEffect(() => {
+    if (mode === 'popular') {
+      setItems(uniqueProducts(getHomeAdProducts(), 5))
+      return
+    }
+    if (!profile) {
+      setItems([])
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const ranked = await fetchCatboostRecommendations(profile)
+        const resolved = ranked
+          .map((r) => getProductById(r.id))
+          .filter((p): p is AdProduct => p != null)
+        if (!cancelled) {
+          setItems(uniqueProducts(resolved.length > 0 ? resolved : getAllProducts().slice(0, 5), 5))
+        }
+      } catch {
+        if (!cancelled) setItems(uniqueProducts(getAllProducts().slice(0, 5), 5))
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [profile, mode, clickHistory])
+
+  return items
 }
 
 function ModeSwitch({
@@ -129,21 +145,25 @@ function ModeSwitch({
       <h3 className="text-base font-semibold shrink-0" style={{ color: colors.text.primary }}>
         Режим рекомендаций
       </h3>
-      <div className="mode-switch flex w-full md:w-auto rounded-xl p-1 gap-0.5">
-        {(['profile', 'popular'] as const).map((m) => {
-          const active = mode === m
-          return (
-            <button
-              key={m}
-              onClick={() => onChange(m)}
-              className={`flex-1 md:flex-none px-3 sm:px-4 py-2 sm:py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer text-center whitespace-nowrap ${
-                active ? 'mode-switch__btn--active' : 'mode-switch__btn'
-              }`}
-            >
-              {m === 'profile' ? 'По профилю' : 'Популярные'}
-            </button>
-          )
-        })}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange('profile')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            mode === 'profile' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-200'
+          }`}
+        >
+          По профилю
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange('popular')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            mode === 'popular' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-200'
+          }`}
+        >
+          Популярные
+        </button>
       </div>
     </div>
   )
@@ -151,29 +171,27 @@ function ModeSwitch({
 
 export function RecommendationsPanel({ profile }: { profile: ProfileData | null }) {
   const [mode, setMode] = useState<'profile' | 'popular'>('profile')
-  const products = useRecommendations(profile, mode)
   const trackClick = useUserInputStore((s) => s.trackClick)
+  const items = useRecommendations(profile, mode)
+
+  const hero = items[0]
+  const rest = items.slice(1, 5)
 
   return (
-    <div
-      className="surface-panel surface-panel--elevated rounded-[1.25rem] p-4 sm:p-5 lg:p-6 animate-fade-in-up w-full min-w-0"
-      style={{ animationDelay: '100ms' }}
-    >
+    <section>
       <ModeSwitch mode={mode} onChange={setMode} />
-
-      <p className="section-label mb-4">Топ-5 рекомендаций</p>
-
-      {products.length > 0 && (
-        <div className="mb-3 sm:mb-4">
-          <HeroRecCard product={products[0]} onTrack={trackClick} />
+      {hero ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+          <HeroRecCard product={hero} onTrack={trackClick} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            {rest.map((p, i) => (
+              <SecondaryRecCard key={p.id} product={p} rank={i + 2} onTrack={trackClick} />
+            ))}
+          </div>
         </div>
+      ) : (
+        <p className="text-sm text-gray-500">Выберите профиль клиента</p>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {products.slice(1).map((p, i) => (
-          <SecondaryRecCard key={p.id} product={p} rank={i + 2} onTrack={trackClick} />
-        ))}
-      </div>
-    </div>
+    </section>
   )
 }
