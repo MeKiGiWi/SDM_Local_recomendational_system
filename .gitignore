@@ -14,3 +14,7 @@ backend/models/export/*.onnx
 venv/
 dist/
 dist/*.apk
+
+# Native build logs
+mobile/modules/sdm-catboost/android/build/
+

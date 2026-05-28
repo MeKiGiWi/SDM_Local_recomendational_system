@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { API_CONFIG } from '../config/api'
 import { analyticsApi } from '../api/endpoints'
 import {
   getAllProducts,
@@ -87,6 +88,10 @@ export const useUserInputStore = create<UserInputState>((set, get) => ({
 
 export async function fetchRecommendationsForProfile(profile: ProfileForModel): Promise<AdProduct[]> {
   const clickHistory = useUserInputStore.getState().clickHistory
+  if (!API_CONFIG.USE_LOCAL_MODEL) {
+    return getPopularProducts()
+  }
+
   const ok = await initModel()
   if (!ok) {
     console.error('[CatBoost]', getModelInitError())

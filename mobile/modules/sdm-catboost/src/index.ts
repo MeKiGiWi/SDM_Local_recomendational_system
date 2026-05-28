@@ -15,20 +15,30 @@ interface SdmCatboostNative {
   predict(rows: CatboostRow[]): Promise<number[]>
 }
 
-const Native = requireNativeModule<SdmCatboostNative>('SdmCatboost')
+let Native: SdmCatboostNative | null | undefined
+
+function getNative(): SdmCatboostNative | null {
+  if (Native !== undefined) return Native
+  try {
+    Native = requireNativeModule<SdmCatboostNative>('SdmCatboost')
+  } catch {
+    Native = null
+  }
+  return Native
+}
 
 export async function loadCatboostModel(modelPath: string): Promise<void> {
-  await Native.loadModel(modelPath)
+  const native = getNative()
+  if (!native) throw new Error('Native module SdmCatboost is not available')
+  await native.loadModel(modelPath)
 }
 
 export async function predictCatboost(rows: CatboostRow[]): Promise<number[]> {
-  return Native.predict(rows)
+  const native = getNative()
+  if (!native) throw new Error('Native module SdmCatboost is not available')
+  return native.predict(rows)
 }
 
 export function isCatboostNativeAvailable(): boolean {
-  try {
-    return Boolean(Native?.loadModel)
-  } catch {
-    return false
-  }
+  return Boolean(getNative()?.loadModel)
 }

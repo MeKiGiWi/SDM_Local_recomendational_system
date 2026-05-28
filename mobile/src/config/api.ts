@@ -13,7 +13,7 @@ export const API_CONFIG = {
   },
   TIMEOUT: 10000,
   USE_MOCK: process.env.EXPO_PUBLIC_USE_MOCK === 'true',
-  USE_LOCAL_MODEL: process.env.EXPO_PUBLIC_USE_LOCAL_MODEL !== 'false',
+  USE_LOCAL_MODEL: process.env.EXPO_PUBLIC_USE_LOCAL_MODEL === 'true',
 }
 
 export function setApiBaseUrl(url: string) {
