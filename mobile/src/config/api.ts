@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import Constants from 'expo-constants'
 
 const extra = Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined
@@ -13,7 +14,9 @@ export const API_CONFIG = {
   },
   TIMEOUT: 10000,
   USE_MOCK: process.env.EXPO_PUBLIC_USE_MOCK === 'true',
-  USE_LOCAL_MODEL: process.env.EXPO_PUBLIC_USE_LOCAL_MODEL === 'true',
+  USE_LOCAL_MODEL:
+    process.env.EXPO_PUBLIC_USE_LOCAL_MODEL === 'true' ||
+    (process.env.EXPO_PUBLIC_USE_LOCAL_MODEL !== 'false' && Platform.OS === 'android'),
 }
 
 export function setApiBaseUrl(url: string) {

@@ -220,8 +220,11 @@ def main() -> None:
     if cbm_src.resolve() != (FRONTEND_MODEL / CBM_NAME).resolve():
         shutil.copy2(cbm_src, FRONTEND_MODEL / CBM_NAME)
     shutil.copy2(cbm_src, MOBILE_MODEL / CBM_NAME)
-    (FRONTEND_MODEL / WEB_RUNTIME_NAME).write_text(json.dumps(runtime, ensure_ascii=False), encoding="utf-8")
-    (FRONTEND_MODEL / CAT_HASHES_NAME).write_text(json.dumps(cat_hashes, ensure_ascii=False), encoding="utf-8")
+    runtime_json = json.dumps(runtime, ensure_ascii=False)
+    hashes_json = json.dumps(cat_hashes, ensure_ascii=False)
+    for dest in (FRONTEND_MODEL, MOBILE_MODEL):
+        (dest / WEB_RUNTIME_NAME).write_text(runtime_json, encoding="utf-8")
+        (dest / CAT_HASHES_NAME).write_text(hashes_json, encoding="utf-8")
 
     (FRONTEND_MODEL / META_NAME).write_text(json.dumps(web_meta, indent=2, ensure_ascii=False), encoding="utf-8")
     (MOBILE_MODEL / META_NAME).write_text(json.dumps(mobile_meta, indent=2, ensure_ascii=False), encoding="utf-8")

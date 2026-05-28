@@ -8,6 +8,7 @@ import {
 import modelMeta from '../../assets/model/catboost_model.json'
 import cbmModule from '../../assets/model/catboost_pointwise.cbm'
 import featureOrder from '../../assets/model/feature_order.json'
+import { initRuntimeModel, predictRuntimeRows } from './catboostRuntimePredict'
 import {
   buildPointwiseRows,
   type ModelMeta,
@@ -23,6 +24,13 @@ const productNames: string[] =
 
 let initialized = false
 let initError: string | null = null
+type InferenceBackend = 'native' | 'js'
+let inferenceBackend: InferenceBackend | null = null
+
+function toNativeFilePath(uri: string): string {
+  if (!uri.startsWith('file://')) return uri
+  return decodeURIComponent(uri.slice('file://'.length))
+}
 
 export function isModelLoaded(): boolean {
   return initialized
@@ -34,32 +42,58 @@ export function getModelInitError(): string | null {
   return initError
 }
 
+async function initNativeModel(): Promise<boolean> {
+  if (!isCatboostNativeAvailable()) return false
+  const asset = Asset.fromModule(cbmModule)
+  await asset.downloadAsync()
+  const uri = asset.localUri ?? asset.uri
+  if (!uri) throw new Error('CBM asset URI missing')
+  await loadCatboostModel(toNativeFilePath(uri))
+  inferenceBackend = 'native'
+  console.info('[CatBoost] Loaded native CBM', productNames.length, 'products')
+  return true
+}
+
+function initJsRuntimeModel(): boolean {
+  initRuntimeModel(meta)
+  inferenceBackend = 'js'
+  console.info('[CatBoost] Using JS runtime applier', productNames.length, 'products')
+  return true
+}
+
 export async function initModel(): Promise<boolean> {
   if (initialized) return true
   if (Platform.OS !== 'android') {
-    initError = 'CatBoost native inference is Android-only (use API on iOS/web).'
-    return false
-  }
-  if (!isCatboostNativeAvailable()) {
-    initError = 'Native module SdmCatboost missing — run: npx expo prebuild --platform android'
+    initError = 'CatBoost inference is Android-only in the mobile app.'
     return false
   }
 
+  if (isCatboostNativeAvailable()) {
+    try {
+      if (await initNativeModel()) {
+        initialized = true
+        initError = null
+        return true
+      }
+    } catch (e) {
+      console.warn('[CatBoost] native init failed, falling back to JS runtime:', e)
+    }
+  }
+
   try {
-    const asset = Asset.fromModule(cbmModule)
-    await asset.downloadAsync()
-    const uri = asset.localUri ?? asset.uri
-    if (!uri) throw new Error('CBM asset URI missing')
-    await loadCatboostModel(uri)
-    initialized = true
-    initError = null
-    console.info('[CatBoost] Loaded native CBM', productNames.length, 'products')
-    return true
+    if (initJsRuntimeModel()) {
+      initialized = true
+      initError = null
+      return true
+    }
   } catch (e) {
     initError = e instanceof Error ? e.message : String(e)
-    console.error('[CatBoost] init failed:', initError)
+    console.error('[CatBoost] JS runtime init failed:', initError)
     return false
   }
+
+  initError = 'CatBoost model could not be loaded (native or JS runtime).'
+  return false
 }
 
 export const initBitNet = initModel
@@ -86,7 +120,10 @@ export async function predictAsync(f: UserFeatures): Promise<Float32Array> {
   }
 
   const rows = buildPointwiseRows(f, meta)
-  const probs = await predictCatboost(rows)
+  const probs =
+    inferenceBackend === 'js'
+      ? predictRuntimeRows(rows)
+      : await predictCatboost(rows)
   const scores = new Float32Array(productNames.length)
   for (let i = 0; i < productNames.length; i++) {
     const idx = meta.products.indexOf(productNames[i])

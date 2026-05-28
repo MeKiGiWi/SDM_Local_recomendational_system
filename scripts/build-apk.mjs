@@ -124,6 +124,8 @@ function main() {
     ANDROID_HOME: SDK_ROOT,
     ANDROID_SDK_ROOT: SDK_ROOT,
     NODE_ENV: 'production',
+    EXPO_PUBLIC_USE_MOCK: 'false',
+    EXPO_PUBLIC_USE_LOCAL_MODEL: 'true',
   }
 
   ensureDebuggableVariantsEmpty()

@@ -11,6 +11,8 @@ const modelDir = join(root, 'mobile', 'assets', 'model')
 
 const cbm = join(modelDir, 'catboost_pointwise.cbm')
 const metaPath = join(modelDir, 'catboost_model.json')
+const webRuntime = join(modelDir, 'catboost_web_runtime.json')
+const catHashes = join(modelDir, 'catboost_cat_features_hashes.json')
 
 if (!existsSync(cbm)) {
   console.error('✖ Missing', cbm)
@@ -19,6 +21,12 @@ if (!existsSync(cbm)) {
 if (!existsSync(metaPath)) {
   console.error('✖ Missing', metaPath)
   process.exit(1)
+}
+for (const p of [webRuntime, catHashes]) {
+  if (!existsSync(p)) {
+    console.error('✖ Missing JS runtime fallback:', p)
+    process.exit(1)
+  }
 }
 
 const meta = JSON.parse(readFileSync(metaPath, 'utf8'))
@@ -36,4 +44,5 @@ console.log('Phone bundle OK')
 console.log('  cbm:', (readFileSync(cbm).length / 1e6).toFixed(2), 'MB')
 console.log('  products:', meta.products.length)
 console.log('  inference:', meta.inference)
-console.log('\n✓ Native CatBoost artifact (run on device after APK build)')
+console.log('  web_runtime:', (readFileSync(webRuntime).length / 1e6).toFixed(2), 'MB')
+console.log('\n✓ CatBoost artifacts (native + JS runtime fallback for APK)')

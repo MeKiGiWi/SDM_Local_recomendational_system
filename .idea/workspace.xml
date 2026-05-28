@@ -4,24 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e0cc0383-bd78-4560-8388-9d1aa022996d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/Readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/backend/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/scripts/export_to_android.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/scripts/export_to_android.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/scripts/export_to_frontend.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/scripts/export_to_frontend.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/scripts/train_santander.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/scripts/train_santander.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/pipeline/loaders/custom_wide.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/pipeline/loaders/custom_wide.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/model/bitnet_weights.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/model/bitnet_weights.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/model/normalization.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/model/normalization.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/client.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/client.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/config/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/config/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/modelInference.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/modelInference.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/modelLoader.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/modelLoader.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.ts" afterDir="false" />
-    </list>
+    <list default="true" id="e0cc0383-bd78-4560-8388-9d1aa022996d" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -52,7 +35,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "feat/android-install",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/MAI/4_sem/SDM"
   }
