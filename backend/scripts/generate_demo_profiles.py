@@ -209,6 +209,17 @@ def ts_source(profiles: list[dict]) -> str:
     )
 
 
+def public_profile(profile: dict) -> dict:
+    """Return the UI payload. Raw income/audit details stay in demo_profiles.json."""
+    public = {
+        key: value
+        for key, value in profile.items()
+        if key not in {"rawIncome", "selectionReason", "modelIncomeEurYear"}
+    }
+    public["scoringIncome"] = profile["modelIncomeEurYear"]
+    return public
+
+
 def main() -> None:
     dataset = find_dataset()
     usecols = ["user_id", "sex", "age", "is_new_customer", "seniority_months", "region_name", "segment", "income_filled", "income_lag_90"]
@@ -224,6 +235,7 @@ def main() -> None:
     for target in TARGETS:
         idx = (monthly_income_rub - target).abs().idxmin()
         profiles.append(build_profile(df.loc[idx], target, monthly_income_rub))
+    public_profiles = [public_profile(profile) for profile in profiles]
 
     max_monthly_income = float(monthly_income_rub.max())
     audit = {
@@ -243,9 +255,9 @@ def main() -> None:
     OUT_TS.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_FIXTURES.parent.mkdir(parents=True, exist_ok=True)
-    OUT_TS.write_text(ts_source(profiles), encoding="utf-8")
+    OUT_TS.write_text(ts_source(public_profiles), encoding="utf-8")
     OUT_JSON.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
-    OUT_FIXTURES.write_text(json.dumps(profiles, ensure_ascii=False, indent=2), encoding="utf-8")
+    OUT_FIXTURES.write_text(json.dumps(public_profiles, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"wrote {OUT_TS}")
     print(f"wrote {OUT_JSON}")
     print(f"wrote {OUT_FIXTURES}")

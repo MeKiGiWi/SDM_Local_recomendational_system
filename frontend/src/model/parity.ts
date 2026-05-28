@@ -36,6 +36,7 @@ async function main(): Promise<void> {
     const profile = {
       ...rawProfile,
       monthlyIncome: rawProfile.monthlyIncomeRub,
+      scoringIncome: rawProfile.scoringIncome,
       accountType: 'current',
       currency: 'RUB',
     } as ProfileForModel

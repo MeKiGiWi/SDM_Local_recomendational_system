@@ -17,7 +17,6 @@ export interface ProfileData extends ProfileForModel {
   sourceUserId: number
   targetMonthlyIncomeRub: number
   incomeQuantile: number
-  selectionReason: string
   balanceSource: string
   sexLabel: string
   ownedProductFlags: Record<string, number>
@@ -91,7 +90,7 @@ export function ClientSelector({
                 {profile.info}, {profile.age} лет
               </div>
               <div className="text-[12px] mt-1 leading-snug font-medium truncate" style={{ color: colors.text.muted }}>
-                user_id {profile.sourceUserId}, квантиль {formatIncomeQuantile(profile.incomeQuantile)}
+                квантиль {formatIncomeQuantile(profile.incomeQuantile)}
               </div>
             </div>
           </button>

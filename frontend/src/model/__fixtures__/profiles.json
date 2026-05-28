@@ -4,15 +4,8 @@
     "name": "Клиент 15k",
     "sourceUserId": 1289958,
     "targetMonthlyIncomeRub": 15000,
-    "modelIncomeEurYear": 15002.76,
-    "rawIncome": {
-      "field": "income_filled",
-      "value": 15002.76,
-      "unit": "EUR/year"
-    },
     "monthlyIncomeRub": 15003,
     "incomeQuantile": 0.0006,
-    "selectionReason": "Nearest real client to target 15 000 RUB/month after calibrated conversion; delta 3 RUB/month.",
     "age": 24,
     "balance": 5250.97,
     "balanceSource": "income_share_proxy",
@@ -54,22 +47,16 @@
     "characteristics": [
       "Стартовый доход",
       "Профиль из реального датасета"
-    ]
+    ],
+    "scoringIncome": 15002.76
   },
   {
     "id": "user-649589",
     "name": "Клиент 100k",
     "sourceUserId": 649589,
     "targetMonthlyIncomeRub": 100000,
-    "modelIncomeEurYear": 100000.08,
-    "rawIncome": {
-      "field": "income_filled",
-      "value": 100000.08,
-      "unit": "EUR/year"
-    },
     "monthlyIncomeRub": 100000,
     "incomeQuantile": 0.4953,
-    "selectionReason": "Nearest real client to target 100 000 RUB/month after calibrated conversion; delta 0 RUB/month.",
     "age": 55,
     "balance": 35000.03,
     "balanceSource": "income_share_proxy",
@@ -111,22 +98,16 @@
     "characteristics": [
       "Стабильный доход",
       "Профиль из реального датасета"
-    ]
+    ],
+    "scoringIncome": 100000.08
   },
   {
     "id": "user-1125781",
     "name": "Клиент 500k",
     "sourceUserId": 1125781,
     "targetMonthlyIncomeRub": 500000,
-    "modelIncomeEurYear": 499978.68,
-    "rawIncome": {
-      "field": "income_filled",
-      "value": 499978.68,
-      "unit": "EUR/year"
-    },
     "monthlyIncomeRub": 499979,
     "incomeQuantile": 0.9901,
-    "selectionReason": "Nearest real client to target 500 000 RUB/month after calibrated conversion; delta 21 RUB/month.",
     "age": 23,
     "balance": 174992.54,
     "balanceSource": "income_share_proxy",
@@ -170,22 +151,16 @@
       "Стабильный доход",
       "Есть бизнес-продукты",
       "Профиль из реального датасета"
-    ]
+    ],
+    "scoringIncome": 499978.68
   },
   {
     "id": "user-167364",
     "name": "Клиент 5000k",
     "sourceUserId": 167364,
     "targetMonthlyIncomeRub": 5000000,
-    "modelIncomeEurYear": 5046790.47,
-    "rawIncome": {
-      "field": "income_filled",
-      "value": 5046790.47,
-      "unit": "EUR/year"
-    },
     "monthlyIncomeRub": 5046790,
     "incomeQuantile": 0.9998,
-    "selectionReason": "Nearest real client to target 5 000 000 RUB/month after calibrated conversion; delta 46 790 RUB/month.",
     "age": 70,
     "balance": 1766376.66,
     "balanceSource": "income_share_proxy",
@@ -230,6 +205,7 @@
       "Высокий доход",
       "Есть бизнес-продукты",
       "Профиль из реального датасета"
-    ]
+    ],
+    "scoringIncome": 5046790.47
   }
 ]

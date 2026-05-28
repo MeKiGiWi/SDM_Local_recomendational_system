@@ -21,7 +21,7 @@ export function ClientProfile({ profile }: { profile: ProfileData }) {
           Реальный клиент из датасета
         </h2>
         <p className="text-sm mt-2" style={{ color: colors.text.secondary }}>
-          user_id {profile.sourceUserId} • цель {formatRubles(profile.targetMonthlyIncomeRub)} • факт {formatRubles(profile.monthlyIncomeRub)}
+          Доход {formatRubles(profile.monthlyIncomeRub)} • квантиль {formatIncomeQuantile(profile.incomeQuantile)}
         </p>
       </div>
 

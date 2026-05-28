@@ -17,8 +17,8 @@ export interface ProfileForModel extends ModelProfileFields {
   age: number
   balance: number
   monthlyIncome: number
-  modelIncomeEurYear: number
   monthlyIncomeRub: number
+  scoringIncome: number
   accountType: AccountType
   currency: Currency
 }
@@ -44,7 +44,7 @@ export function profileToUserFeatures(profile: ProfileForModel): UserFeatures {
   return {
     age: profile.age,
     balance: profile.balance,
-    monthlyIncome: profile.modelIncomeEurYear,
+    monthlyIncome: profile.scoringIncome,
     accountType: ACCOUNT_MAP[profile.accountType] ?? 0,
     currency: CURRENCY_MAP[profile.currency] ?? 0,
     sex: profile.sex,
