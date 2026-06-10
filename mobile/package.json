@@ -1,5 +1,5 @@
 {
-  "name": "mobile",
+  "name": "sdm-edge-recommendations-mobile",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {

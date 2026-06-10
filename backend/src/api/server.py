@@ -1,9 +1,12 @@
-"""Minimal runtime API for the Phase 1 web demo."""
+"""Legacy backend API for data and verification helpers.
+
+The primary recommendation demo path runs locally in the web and mobile clients.
+This FastAPI app is kept only for development utilities and dataset/model inspection.
+"""
 
 from __future__ import annotations
 
 import json
-import random
 import sys
 from pathlib import Path
 from typing import Any
@@ -29,7 +32,7 @@ REQUIRED_MODEL_FILES = (
 _products_cache: list[dict[str, Any]] | None = None
 _recommender = None
 
-app = FastAPI(title="SDM Demo API", version="1.0.0")
+app = FastAPI(title="SDM Edge Recommendation Backend", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -80,7 +83,7 @@ def _get_recommender():
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "role": "phase-1-demo-runtime"}
+    return {"status": "ok", "role": "legacy-dev-backend"}
 
 
 @app.get("/api/model/health")
@@ -102,9 +105,8 @@ def model_health() -> dict[str, Any]:
 
     return {
         "status": "ok" if not missing else "incomplete",
-        "phase": "1",
-        "web_inference": "not_enabled_yet",
-        "web_demo_runtime": "temporary_backend_recommendations",
+        "backend_role": "training-export-verification",
+        "primary_inference_path": "client-side-local",
         "catboost_pkl_present": CATBOOST_PKL.exists(),
         "model_dir": str(MODEL_DIR.relative_to(ROOT)).replace("\\", "/"),
         "required": list(REQUIRED_MODEL_FILES),
@@ -133,6 +135,7 @@ def product_recommendations(
     segment: str | None = None,
     region_name: str | None = None,
 ) -> list[dict[str, Any]]:
+    """Legacy endpoint kept for development comparison only."""
     from src.models.catboost_pointwise import UserContext
 
     ctx = UserContext.from_api(
@@ -155,5 +158,4 @@ def product_recommendations(
     if out:
         return out
 
-    items = _load_products()
-    return random.sample(items, k=min(5, len(items)))
+    return []

@@ -1,20 +1,35 @@
-backend/datasets/raw/test_ver2.csv
-backend/datasets/raw/train_ver2.csv
-backend/datasets/raw/
+# OS / IDE
+.DS_Store
+__MACOSX/
+.idea/
+.vscode/
+
+# Python
 __pycache__/
 *.pyc
 .venv/
-node_modules/
-
-models/
-backend/models/export/*.onnx
-
-*.csv
-.DS_Store
 venv/
-dist/
-dist/*.apk
+.env
+.env.*
+!.env.example
+!frontend/.env.development
 
-# Native build logs
+# Node
+node_modules/
+dist/
+build/
+
+# Data / models
+*.csv
+*.parquet
+backend/datasets/raw/
+backend/models/export/
+models/
+
+# Mobile / native
 mobile/modules/sdm-catboost/android/build/
+*.apk
+
+# Logs
+*.log
 

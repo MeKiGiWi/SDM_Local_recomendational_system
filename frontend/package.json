@@ -1,5 +1,5 @@
 {
-  "name": "sdm-frontend",
+  "name": "sdm-edge-recommendations-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "model:export": "python ../backend/scripts/pipeline/export_model.py",
     "model:verify": "node ../scripts/verify-model.mjs",
-    "model:parity": "tsx src/model/parity.ts"
+    "model:parity": "node --import tsx src/model/parity.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",

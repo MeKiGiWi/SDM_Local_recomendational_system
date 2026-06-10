@@ -37,7 +37,6 @@ FRONTEND_MODEL = ROOT / "frontend" / "public" / "model"
 MOBILE_MODEL = ROOT / "mobile" / "assets" / "model"
 PKL_CANDIDATES = [
     BACKEND / "models" / "export" / "catboost_pointwise_holdout.pkl",
-    ROOT / "catboost_pointwise_holdout_old_good.pkl",
     ROOT / "catboost_pointwise_holdout.pkl",
 ]
 CBM_NAME = "catboost_pointwise.cbm"
