@@ -6,86 +6,86 @@
 ![Frontend React + TypeScript](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-61dafb)
 ![Mobile React Native / Expo](https://img.shields.io/badge/Mobile-React%20Native%20%2F%20Expo-4630eb)
 
-Winner of the "Operational Impulse" Hackathon by SDM Bank.
+Проект-победитель хакатона «Операционный импульс» от СДМ-Банка.
 
-A privacy-preserving recommendation system for banking products. The project demonstrates how personalized product recommendations can be generated locally on the client side using CatBoost models, without sending sensitive user data to a remote inference server.
+Система персонализированных рекомендаций банковских продуктов с локальным inference. Проект показывает, как рекомендации могут рассчитываться на стороне клиента с помощью моделей CatBoost без отправки чувствительных пользовательских данных на удаленный inference-сервер.
 
-## Highlights
+## Ключевые особенности
 
-- Hackathon-winning project for SDM Bank.
-- Local / edge inference: recommendations are generated on-device or in-browser.
-- CatBoost-based pointwise ranking model for banking products.
-- Synthetic demo client profiles generated from Santander-like banking data.
-- Web app for recommendation visualization.
-- Android app for on-device inference benchmarks.
-- Training, export, and verification pipeline for CatBoost model artifacts.
+- Проект-победитель хакатона СДМ-Банка.
+- Локальный / edge inference: рекомендации рассчитываются на устройстве или в браузере.
+- Pointwise-модель рекомендаций банковских продуктов на базе CatBoost.
+- Синтетические demo-профили клиентов, построенные на Santander-like банковских данных.
+- Web-приложение для визуализации рекомендаций.
+- Android-приложение для on-device inference и замера производительности.
+- Pipeline для обучения, экспорта и верификации model artifacts.
 
-## Problem
+## Проблема
 
-Banks need to recommend relevant products while minimizing privacy risks. A classical server-side recommendation service requires sending user attributes to a backend. This project explores an edge inference approach where model artifacts are shipped to the client and recommendations are calculated locally.
+Банкам необходимо рекомендовать релевантные продукты, при этом снижая privacy-риски. Классический серверный recommendation service требует передачи пользовательских атрибутов в backend. В этом проекте исследуется edge-подход, при котором model artifacts доставляются на клиент, а рекомендации рассчитываются локально.
 
-## Solution
+## Решение
 
-The system contains three main parts:
+Система состоит из трех основных частей:
 
 1. ML pipeline
-   - data preprocessing;
-   - missing income estimation with `CatBoostRegressor`;
-   - behavioral proxy feature generation;
-   - pointwise `CatBoostClassifier` training for product recommendation;
-   - model export for web and mobile inference.
+   - предобработка данных;
+   - восстановление пропусков в доходах с помощью `CatBoostRegressor`;
+   - генерация поведенческих proxy-признаков;
+   - обучение `CatBoostClassifier` для рекомендаций в pointwise-постановке;
+   - экспорт модели для web и mobile inference.
 
-2. Web application
-   - React + TypeScript interface;
-   - local model loading from static artifacts;
-   - in-browser CatBoost inference;
-   - product ranking and visualization.
+2. Web-приложение
+   - интерфейс на React + TypeScript;
+   - локальная загрузка model artifacts;
+   - CatBoost inference в браузере;
+   - ранжирование и визуализация банковских продуктов.
 
-3. Mobile application
-   - React Native / Expo app;
-   - native Android CatBoost `.cbm` inference;
-   - benchmark screen for measuring local inference latency.
+3. Mobile-приложение
+   - приложение на React Native / Expo;
+   - native Android inference через CatBoost `.cbm`;
+   - экран бенчмарков для измерения локальной задержки inference.
 
-## Architecture
+## Архитектура
 
 ```text
-User profile
+Профиль пользователя
   -> feature builder
   -> CatBoost model artifact
   -> local inference
-  -> ranked banking products
+  -> ранжированный список банковских продуктов
   -> web / mobile UI
 ```
 
-The backend is used mainly for training, exporting, and verification. The main demo path does not require backend recommendation inference.
+Backend в проекте используется в основном для обучения, экспорта и верификации. Основной demo-сценарий не требует backend inference для рекомендаций.
 
 ## Machine Learning
 
-- Santander banking data is used as the base dataset for the prototype workflow.
-- `CatBoostRegressor` is used to fill missing income values.
-- Additional behavioral proxy features are generated to enrich the user representation.
-- `CatBoostClassifier` is trained with a pointwise ranking formulation.
-- Candidate banking products are scored independently and then sorted by predicted relevance.
+- В качестве базового датасета для прототипа используются Santander banking data.
+- `CatBoostRegressor` применяется для заполнения пропусков в доходах.
+- Дополнительно генерируются поведенческие proxy-признаки для обогащения представления клиента.
+- `CatBoostClassifier` обучается в pointwise-постановке ранжирования.
+- Кандидатные банковские продукты оцениваются независимо, после чего сортируются по предсказанной релевантности.
 
-This repository focuses on hackathon prototype quality, local inference feasibility, and parity verification between exported artifacts and client-side runtime behavior. It does not claim production-grade model validation or benchmark completeness.
+Репозиторий ориентирован на качество hackathon prototype, проверку feasibility локального inference и parity между экспортированными artifacts и клиентским runtime. Он не претендует на production-grade модельную валидацию или полный набор benchmark-метрик.
 
 ## Edge Inference
 
-- Web inference uses static artifacts from [frontend/public/model](/Users/daniil/code/mai/sdm_hack/frontend/public/model).
-- Mobile inference uses the native `.cbm` artifact from [mobile/assets/model](/Users/daniil/code/mai/sdm_hack/mobile/assets/model).
-- User data stays on the client during the main recommendation flow.
-- No backend recommendation request is required for the primary demo path.
+- Web inference использует статические artifacts из [frontend/public/model](/Users/daniil/code/mai/sdm_hack/frontend/public/model).
+- Mobile inference использует native `.cbm` artifact из [mobile/assets/model](/Users/daniil/code/mai/sdm_hack/mobile/assets/model).
+- Пользовательские данные остаются на клиенте в основном recommendation flow.
+- Для основного demo-сценария backend recommendation request не требуется.
 
-## Repository Structure
+## Структура репозитория
 
 ```text
-frontend/    React + TypeScript web demo with local inference
-mobile/      React Native / Expo Android app with native CatBoost inference
-backend/     Data preparation, training, export, and verification scripts
-scripts/     Cross-platform verification and benchmark helpers
+frontend/    React + TypeScript web demo с локальным inference
+mobile/      React Native / Expo Android app с native CatBoost inference
+backend/     Скрипты подготовки данных, обучения, экспорта и верификации
+scripts/     Cross-platform скрипты проверки и benchmark-утилиты
 ```
 
-## Tech Stack
+## Технологии
 
 - Python
 - pandas
@@ -98,7 +98,7 @@ scripts/     Cross-platform verification and benchmark helpers
 - React Native / Expo
 - Docker
 
-## Getting Started
+## Запуск
 
 ### Web
 
@@ -108,7 +108,7 @@ npm install
 npm run dev
 ```
 
-For the main local demo flow, backend startup is not required.
+Для основного local demo flow запуск backend не требуется.
 
 ### Build
 
@@ -117,7 +117,7 @@ cd frontend
 npm run build
 ```
 
-### Verify model artifacts
+### Проверка model artifacts
 
 ```bash
 node scripts/verify-model.mjs
@@ -139,13 +139,13 @@ npm install
 npm run android
 ```
 
-Android Studio and the Android SDK are required for the native Android build and on-device inference flow.
+Для native Android build и on-device inference необходимы Android Studio и Android SDK.
 
-### Frontend environment example
+### Пример frontend-конфигурации
 
-See [frontend/.env.example](/Users/daniil/code/mai/sdm_hack/frontend/.env.example). The backend URL is optional for the main demo because recommendations are generated locally.
+См. [frontend/.env.example](/Users/daniil/code/mai/sdm_hack/frontend/.env.example). Переменная backend URL необязательна для основного demo-сценария, так как рекомендации рассчитываются локально.
 
-## Key Files
+## Ключевые файлы
 
 - [frontend/src/model/loadModel.ts](/Users/daniil/code/mai/sdm_hack/frontend/src/model/loadModel.ts)
 - [frontend/src/model/catboostJsonPredict.ts](/Users/daniil/code/mai/sdm_hack/frontend/src/model/catboostJsonPredict.ts)
@@ -157,26 +157,33 @@ See [frontend/.env.example](/Users/daniil/code/mai/sdm_hack/frontend/.env.exampl
 - [scripts/verify-model.mjs](/Users/daniil/code/mai/sdm_hack/scripts/verify-model.mjs)
 - [scripts/audit-no-stubs.mjs](/Users/daniil/code/mai/sdm_hack/scripts/audit-no-stubs.mjs)
 
-## Verification
+## Верификация
 
-Current verification in this repository is designed to confirm artifact presence and inference-path consistency:
+Текущая верификация в репозитории предназначена для подтверждения наличия artifacts и консистентности inference-path:
 
-- web model artifacts exist;
-- mobile model artifacts exist;
-- native `.cbm` bundle is present;
-- legacy surrogate bundle is not used in the mobile inference path;
-- parity tooling is available to compare exported reference scores against runtime predictions.
+- присутствуют web model artifacts;
+- присутствуют mobile model artifacts;
+- в bundle включен native `.cbm`;
+- legacy surrogate bundle не используется в mobile inference path;
+- parity tooling позволяет сравнивать reference scores с runtime predictions.
 
-Only checks actually executed in the current environment should be treated as confirmed.
+Подтвержденными следует считать только те проверки, которые действительно были выполнены в текущем окружении.
+
+## Ограничения
+
+- Это hackathon prototype, а не production-ready банковская система.
+- Репозиторий демонстрирует feasibility локального inference, а не полный production cycle model governance.
+- Для проверки mobile runtime требуется Android-окружение и native toolchain.
+- Для реального банковского внедрения потребуются дополнительные меры в области security, compliance, monitoring и model validation.
 
 ## Privacy Note
 
-The project demonstrates a privacy-preserving architecture: user attributes are transformed into features and scored locally. The main recommendation path does not require sending personal user data to a backend inference endpoint.
+Проект демонстрирует privacy-preserving архитектуру: пользовательские атрибуты преобразуются в признаки и оцениваются локально. Основной recommendation path не требует отправки персональных данных в backend inference endpoint.
 
-## Hackathon Result
+## Результат на хакатоне
 
-This project won the "Operational Impulse" Hackathon by SDM Bank.
+Проект занял первое место на хакатоне «Операционный импульс» от СДМ-Банка.
 
 ## Disclaimer
 
-This is a hackathon prototype and research/demo project. It is not intended for production banking use without additional security, compliance, monitoring, and model validation.
+Проект предназначен как hackathon prototype и техническая демонстрация. Он не предназначен для production-использования в банковской среде без дополнительной проработки security, compliance, monitoring и model validation.
